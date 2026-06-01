@@ -10,7 +10,7 @@ return new class extends Migration
     {
         Schema::create('payment_transactions', function (Blueprint $table) {
             $table->uuid('id')->primary();
-            $table->string('transaction_id')->unique();
+            $table->string('transaction_id', 191)->unique();
             $table->foreignId('user_id')->nullable()->index();
             $table->string('channel_code')->nullable();
             $table->string('customer_phone');
@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('product_category')->default('MYADS');
             $table->string('product_type')->default('ADVERTISEMENT');
             $table->string('product_detail')->default('Advertisement Payment');
-            $table->string('status')->default('PENDING')->index();
+            $table->string('status', 50)->default('PENDING')->index();
             $table->string('payment_code')->nullable();
             $table->text('qris_url')->nullable();
             $table->text('redirect_url')->nullable();
