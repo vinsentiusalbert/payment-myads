@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Pilih Metode Pembayaran</title>
+    <link rel="icon" type="image/x-icon" href="{{ asset('assets/myads_colour_02.ico') }}">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background: #f4f7fb;
+            color: #111827;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+        .modal {
+            width: min(92vw, 420px);
+            background: #ffffff;
+            border: 1px solid #d9e0ea;
+            border-radius: 8px;
+            box-shadow: 0 18px 45px rgba(15, 23, 42, .13);
+            padding: 28px;
+            position: relative;
+        }
+        .close {
+            position: absolute;
+            top: 16px;
+            right: 20px;
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 28px;
+            line-height: 1;
+        }
+        .brand-logo {
+            display: block;
+            width: 122px;
+            height: auto;
+            margin: 0 auto 16px;
+        }
+        h1 {
+            margin: 0 26px 10px;
+            text-align: center;
+            font-size: 22px;
+            line-height: 1.2;
+        }
+        .timer {
+            text-align: center;
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .timer span { color: #126bff; }
+        .summary {
+            margin: 20px 0 16px;
+            border: 1px solid #e3e9f2;
+            border-radius: 8px;
+            padding: 12px 14px;
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.6;
+            background: #fbfdff;
+        }
+        .summary strong { color: #111827; }
+        .status {
+            display: inline-flex;
+            align-items: center;
+            height: 24px;
+            margin-top: 8px;
+            padding: 0 10px;
+            border-radius: 999px;
+            background: #fff7ed;
+            color: #c2410c;
+            font-size: 12px;
+            font-weight: 800;
+        }
+        .tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            margin: 20px 0 28px;
+            border-bottom: 1px solid #dbe3ee;
+        }
+        .tab {
+            padding: 0 8px 14px;
+            text-align: center;
+            color: #334155;
+            font-size: 14px;
+            font-weight: 800;
+        }
+        .tab.active {
+            color: #126bff;
+            border-bottom: 3px solid #126bff;
+            margin-bottom: -2px;
+        }
+        .instruction {
+            margin: 0 auto 10px;
+            max-width: 275px;
+            text-align: center;
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.4;
+            font-weight: 600;
+        }
+        .qr-box {
+            width: 234px;
+            height: 220px;
+            display: grid;
+            place-items: center;
+            margin: 0 auto 18px;
+            border: 1px solid #e0e7f0;
+            border-radius: 8px;
+            background: #ffffff;
+        }
+        .qris-image {
+            max-width: 188px;
+            max-height: 188px;
+            object-fit: contain;
+        }
+        .section-label {
+            margin: 0 0 10px;
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 700;
+        }
+        .method {
+            width: 100%;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 12px;
+            border: 1px solid #dbe3ee;
+            border-radius: 8px;
+            color: #111827;
+            background: #fff;
+            font-weight: 800;
+            box-shadow: 0 1px 5px rgba(15, 23, 42, .05);
+        }
+        .method svg:first-child { color: #126bff; }
+        .method svg:last-child { margin-left: auto; color: #94a3b8; }
+        .note {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding: 12px;
+            border: 1px solid #b9d7ff;
+            border-radius: 7px;
+            background: #eaf3ff;
+            color: #126bff;
+            font-size: 12px;
+            line-height: 1.45;
+            font-weight: 700;
+        }
+        .payment-code {
+            margin: -6px 0 18px;
+            text-align: center;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 700;
+            word-break: break-word;
+        }
+        .icon { width: 20px; height: 20px; flex: 0 0 auto; }
+        @media (max-width: 480px) {
+            .modal { padding: 24px 18px; }
+            .brand-logo { margin-top: 10px; }
+            h1 { font-size: 20px; }
+            .qr-box { width: 224px; }
+        }
+    </style>
+</head>
+<body>
+    <main class="modal">
+        <a href="{{ route('checkout.form') }}" class="close" aria-label="Tutup">&times;</a>
+        <img class="brand-logo" src="{{ asset('assets/myads_colour_02.png') }}" alt="MyAds">
+        <h1>Pilih Metode Pembayaran</h1>
+        <div class="timer">Selesaikan pembayaran sebelum <span>{{ optional($payment->transaction_expire)->format('d M Y H:i') }}</span></div>
+
+        <div class="summary">
+            <div><strong>{{ $payment->customer_name }}</strong></div>
+            <div>{{ $payment->customer_email }} - {{ $payment->customer_phone }}</div>
+            <div>Transaction ID: <strong>{{ $payment->transaction_id }}</strong></div>
+            <div>Total: <strong>Rp {{ number_format($payment->transaction_amount, 0, ',', '.') }}</strong></div>
+            <div class="status">{{ $payment->status }}</div>
+        </div>
+
+        <div class="tabs" role="tablist">
+            <div class="tab active">QRIS / Barcode</div>
+            <div class="tab">Virtual Account</div>
+        </div>
+
+        <p class="instruction">Scan kode QR berikut dengan aplikasi pembayaran Anda</p>
+        <div class="qr-box" aria-label="QRIS pembayaran">
+            @if ($payment->qris_url)
+                <img class="qris-image" src="{{ $payment->qris_url }}" alt="QRIS {{ $payment->transaction_id }}">
+            @else
+                <img class="qris-image" src="{{ route('payment.qris', $payment->transaction_id) }}" alt="QRIS {{ $payment->transaction_id }}">
+            @endif
+        </div>
+        @if ($payment->payment_code)
+            <div class="payment-code">Kode pembayaran: {{ $payment->payment_code }}</div>
+        @endif
+
+        <p class="section-label">Atau gunakan metode lain</p>
+        <button class="method" type="button">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V9l7-4 7 4v12"/><path d="M9 21v-8h6v8"/><path d="M7 9h10"/></svg>
+            Virtual Account
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+
+        <div class="note">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+            Setelah pembayaran berhasil, sistem akan otomatis menginformasikan kepada kami.
+        </div>
+    </main>
+</body>
+</html>

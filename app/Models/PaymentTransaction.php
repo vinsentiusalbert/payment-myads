@@ -1,0 +1,50 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Concerns\HasUuids;
+use Illuminate\Database\Eloquent\Model;
+
+class PaymentTransaction extends Model
+{
+    use HasUuids;
+
+    protected $fillable = [
+        'id',
+        'transaction_id',
+        'user_id',
+        'channel_code',
+        'customer_phone',
+        'customer_email',
+        'customer_name',
+        'transaction_amount',
+        'product_category',
+        'product_type',
+        'product_detail',
+        'status',
+        'payment_code',
+        'qris_url',
+        'redirect_url',
+        'transaction_date',
+        'transaction_expire',
+        'payment_date',
+        'request_payload',
+        'gateway_payload',
+        'gateway_response',
+        'callback_payload',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'transaction_amount' => 'integer',
+            'transaction_date' => 'datetime',
+            'transaction_expire' => 'datetime',
+            'payment_date' => 'datetime',
+            'request_payload' => 'array',
+            'gateway_payload' => 'array',
+            'gateway_response' => 'array',
+            'callback_payload' => 'array',
+        ];
+    }
+}
