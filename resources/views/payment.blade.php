@@ -112,11 +112,48 @@
             border: 1px solid #e0e7f0;
             border-radius: 8px;
             background: #ffffff;
+            position: relative;
         }
         .qris-image {
             max-width: 188px;
             max-height: 188px;
             object-fit: contain;
+            opacity: 0;
+            transition: opacity .18s ease;
+        }
+        .qris-image.is-loaded {
+            opacity: 1;
+        }
+        .qris-link {
+            display: inline-grid;
+            place-items: center;
+            line-height: 0;
+        }
+        .qr-loading {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            gap: 10px;
+            color: #64748b;
+            font-size: 12px;
+            font-weight: 800;
+            background: #ffffff;
+            border-radius: 8px;
+        }
+        .qr-spinner {
+            width: 34px;
+            height: 34px;
+            border: 4px solid #dbeafe;
+            border-top-color: #126bff;
+            border-radius: 50%;
+            animation: spin .8s linear infinite;
+        }
+        .qr-loading.is-hidden {
+            display: none;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
         .section-label {
             margin: 0 0 10px;
@@ -161,6 +198,30 @@
             font-weight: 700;
             word-break: break-word;
         }
+        .qris-empty {
+            padding: 18px;
+            text-align: center;
+            color: #dc2626;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.4;
+        }
+        .download-qris {
+            width: 100%;
+            height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            margin: -4px 0 18px;
+            border: 1px solid #126bff;
+            border-radius: 7px;
+            color: #126bff;
+            background: #ffffff;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 800;
+        }
         .icon { width: 20px; height: 20px; flex: 0 0 auto; }
         @media (max-width: 480px) {
             .modal { padding: 24px 18px; }
@@ -175,7 +236,7 @@
         <a href="{{ route('checkout.form') }}" class="close" aria-label="Tutup">&times;</a>
         <img class="brand-logo" src="{{ asset('assets/myads_colour_02.png') }}" alt="MyAds">
         <h1>Pilih Metode Pembayaran</h1>
-        <div class="timer">Selesaikan pembayaran sebelum <span>{{ optional($payment->transaction_expire)->format('d M Y H:i') }}</span></div>
+        <div class="timer">Selesaikan pembayaran sebelum <span>{{ $payment->transaction_expire ? $payment->transaction_expire->timezone('Asia/Jakarta')->format('d M Y H:i').' WIB' : '-' }}</span></div>
 
         <div class="summary">
             <div><strong>{{ $payment->customer_name }}</strong></div>
@@ -193,13 +254,25 @@
         <p class="instruction">Scan kode QR berikut dengan aplikasi pembayaran Anda</p>
         <div class="qr-box" aria-label="QRIS pembayaran">
             @if ($payment->qris_url)
-                <img class="qris-image" src="{{ $payment->qris_url }}" alt="QRIS {{ $payment->transaction_id }}">
+                <div class="qr-loading" id="qrLoading" aria-live="polite">
+                    <div class="qr-spinner" aria-hidden="true"></div>
+                    Memuat QRIS
+                </div>
+                <a class="qris-link" href="{{ route('payment.continue', $payment->transaction_id) }}" aria-label="Lanjut ke MyAds">
+                    <img class="qris-image" id="qrisImage" src="{{ str_starts_with($payment->qris_url, 'http://') || str_starts_with($payment->qris_url, 'https://') || str_starts_with($payment->qris_url, 'data:image/') ? $payment->qris_url : route('payment.qris', $payment->transaction_id) }}" alt="QRIS {{ $payment->transaction_id }}">
+                </a>
             @else
-                <img class="qris-image" src="{{ route('payment.qris', $payment->transaction_id) }}" alt="QRIS {{ $payment->transaction_id }}">
+                <div class="qris-empty">QRIS dari API belum tersedia.</div>
             @endif
         </div>
         @if ($payment->payment_code)
             <div class="payment-code">Kode pembayaran: {{ $payment->payment_code }}</div>
+        @endif
+        @if ($payment->qris_url)
+            <a class="download-qris" href="{{ route('payment.qris', $payment->transaction_id) }}" download="qris-{{ $payment->transaction_id }}.jpg">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+                Download QRIS
+            </a>
         @endif
 
         <p class="section-label">Atau gunakan metode lain</p>
@@ -214,5 +287,45 @@
             Setelah pembayaran berhasil, sistem akan otomatis menginformasikan kepada kami.
         </div>
     </main>
+    <script>
+        const transactionId = @json($payment->transaction_id);
+        const redirectUrl = 'https://myads.telkomsel.com/login';
+        const qrisImage = document.getElementById('qrisImage');
+        const qrLoading = document.getElementById('qrLoading');
+
+        function finishQrLoading() {
+            qrisImage?.classList.add('is-loaded');
+            qrLoading?.classList.add('is-hidden');
+        }
+
+        if (qrisImage) {
+            if (qrisImage.complete && qrisImage.naturalWidth > 0) {
+                finishQrLoading();
+            } else {
+                qrisImage.addEventListener('load', finishQrLoading, { once: true });
+                qrisImage.addEventListener('error', finishQrLoading, { once: true });
+            }
+        }
+
+        async function checkPaymentStatus() {
+            try {
+                const response = await fetch(`/api/payment/${encodeURIComponent(transactionId)}`, {
+                    headers: { Accept: 'application/json' },
+                });
+                const result = await response.json();
+
+                if (result?.data?.status === 'SUCCESS') {
+                    window.location.href = redirectUrl;
+                }
+            } catch (error) {
+            }
+        }
+
+        @if ($payment->status === 'SUCCESS')
+            window.location.href = redirectUrl;
+        @else
+            setInterval(checkPaymentStatus, 3000);
+        @endif
+    </script>
 </body>
 </html>

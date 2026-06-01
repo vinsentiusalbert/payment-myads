@@ -36,11 +36,13 @@ return [
     ],
 
     'payment_gateway' => [
-        'initiate_url' => env('PAYMENT_GATEWAY_INITIATE_URL'),
+        'initiate_url' => env('PAYMENT_GATEWAY_INITIATE_URL')
+            ?: rtrim((string) env('PAYMENT_GATEWAY_BASE_URL'), '/').'/'.ltrim((string) env('PAYMENT_GATEWAY_ENDPOINT', '/api/v1/payment'), '/'),
         'secret_key' => env('SECRET_KEY', env('PAYMENT_GATEWAY_TOKEN')),
         'client_key' => env('CLIENT_KEY'),
         'app_id' => env('APP_ID'),
         'channel_code' => env('CHANNEL_CODE', env('API_KSS_PAYMENT_CHANNEL_CODE')),
+        'callback_url' => env('PAYMENT_GATEWAY_CALLBACK_URL'),
     ],
 
 ];

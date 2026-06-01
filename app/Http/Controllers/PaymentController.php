@@ -8,6 +8,7 @@ use Endroid\QrCode\Encoding\Encoding;
 use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\RoundBlockSizeMode;
 use Endroid\QrCode\Writer\PngWriter;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -45,7 +46,7 @@ class PaymentController extends Controller
         ]);
 
         $createdAt = now();
-        $transactionId = 'TEST'.substr($createdAt->getTimestampMs().random_int(10, 99), -10);
+        $transactionId = $createdAt->getTimestampMs().random_int(1000, 9999);
         $expiresAt = $createdAt->copy()->addMinutes(15);
 
         $payload = [
@@ -54,37 +55,58 @@ class PaymentController extends Controller
             'customerEmail' => $validated['email'],
             'customerName' => $validated['name'],
             'transactionAmount' => (int) $validated['amount'],
-            'productCategory' => $validated['product_category'] ?? 'MYADS',
-            'productType' => $validated['product_type'] ?? 'ADVERTISEMENT',
-            'productDetail' => $validated['product_detail'] ?? 'Advertisement Payment',
+            'transactionExpire' => $expiresAt->toDateTimeString(),
+            'productCategory' => $validated['product_category'] ?? 'BAYARAJA',
+            'productType' => $validated['product_type'] ?? 'Recharge Coin',
+            'productDetail' => $validated['product_detail'] ?? 'Test',
         ];
-        $gatewayPayload = $this->buildGatewayPayload($payload);
 
-        $gatewayResponse = $this->initiateGatewayPayment($payload, $expiresAt);
-        $pgData = $gatewayResponse['data'] ?? [];
+        try {
+            $gatewayResponse = $this->initiateGatewayPayment($payload, $expiresAt);
+        } catch (RequestException $exception) {
+            $gatewayResponse = $exception->response?->json() ?? [
+                'success' => false,
+                'message' => $exception->getMessage(),
+            ];
 
-        $transaction = PaymentTransaction::create([
-            'id' => (string) Str::uuid(),
-            'transaction_id' => $transactionId,
-            'user_id' => Auth::id(),
-            'channel_code' => config('services.payment_gateway.channel_code'),
-            'customer_phone' => $validated['phone'],
-            'customer_email' => $validated['email'],
-            'customer_name' => $validated['name'],
-            'transaction_amount' => (int) $validated['amount'],
-            'product_category' => $payload['productCategory'],
-            'product_type' => $payload['productType'],
-            'product_detail' => $payload['productDetail'],
-            'status' => 'PENDING',
-            'payment_code' => $pgData['payment_code'] ?? null,
-            'qris_url' => $pgData['qris_url'] ?? null,
-            'redirect_url' => $pgData['redirect_url'] ?? null,
-            'transaction_date' => $createdAt,
-            'transaction_expire' => $pgData['transaction_expire'] ?? $expiresAt,
-            'request_payload' => $request->except('_token'),
-            'gateway_payload' => $gatewayPayload,
-            'gateway_response' => $gatewayResponse,
-        ]);
+            $transaction = $this->saveTransaction(
+                validated: $validated,
+                payload: $payload,
+                gatewayResponse: $gatewayResponse,
+                createdAt: $createdAt,
+                expiresAt: $expiresAt,
+                status: 'FAILED'
+            );
+
+            if ($request->is('api/*') || $request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $gatewayResponse['message'] ?? 'Payment gateway rejected the request',
+                'data' => [
+                    'id' => $transaction->id,
+                    'transaction_id' => $transaction->transaction_id,
+                    'gateway_response' => $gatewayResponse,
+                    ],
+                ], $exception->response?->status() ?? 502);
+            }
+
+            return back()
+                ->withInput()
+                ->withErrors([
+                    'amount' => $gatewayResponse['message'] ?? 'Payment gateway rejected the request',
+                ]);
+        }
+
+        $pgData = $this->extractGatewayData($gatewayResponse);
+
+        $transaction = $this->saveTransaction(
+            validated: $validated,
+            payload: $payload,
+            gatewayResponse: $gatewayResponse,
+            createdAt: $createdAt,
+            expiresAt: $expiresAt,
+            pgData: $pgData
+        );
 
         $request->session()->put('payment_transaction_id', $transaction->transaction_id);
 
@@ -97,7 +119,7 @@ class PaymentController extends Controller
                     'transaction_id' => $transaction->transaction_id,
                     'payment_code' => $transaction->payment_code,
                     'qris_url' => $transaction->qris_url,
-                    'transaction_expire' => optional($transaction->transaction_expire)->toDateTimeString(),
+                    'transaction_expire' => $this->formatWib($transaction->transaction_expire),
                     'transaction_amount' => $transaction->transaction_amount,
                     'redirect_url' => $transaction->redirect_url,
                     'gateway_response' => $transaction->gateway_response,
@@ -127,15 +149,19 @@ class PaymentController extends Controller
         ]);
     }
 
-    public function qris(string $transactionId): Response
+    public function qris(string $transactionId): Response|RedirectResponse
     {
         $payment = PaymentTransaction::where('transaction_id', $transactionId)->firstOrFail();
 
-        $qrisPayload = $payment->qris_url ?: $payment->payment_code ?: $payment->transaction_id;
+        abort_if(! $payment->qris_url, 404);
+
+        if ($this->isDirectImageSource($payment->qris_url)) {
+            return redirect()->away($payment->qris_url);
+        }
 
         $result = (new Builder(
             writer: new PngWriter(),
-            data: $qrisPayload,
+            data: $payment->qris_url,
             encoding: new Encoding('UTF-8'),
             errorCorrectionLevel: ErrorCorrectionLevel::High,
             size: 240,
@@ -163,6 +189,19 @@ class PaymentController extends Controller
         ]);
     }
 
+    public function continueAfterPayment(Request $request, string $transactionId): RedirectResponse
+    {
+        $payment = PaymentTransaction::where('transaction_id', $transactionId)->firstOrFail();
+
+        if ($payment->status === 'SUCCESS') {
+            return redirect()->away('https://myads.telkomsel.com/login');
+        }
+
+        $request->session()->put('payment_transaction_id', $payment->transaction_id);
+
+        return redirect()->route('payment.show');
+    }
+
     public function callback(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -171,6 +210,10 @@ class PaymentController extends Controller
             'transaction_message' => ['nullable', 'string'],
             'payment_code' => ['nullable', 'string'],
             'transaction_date' => ['nullable', 'date'],
+            'transaction_expire' => ['nullable', 'date'],
+            'transaction_amount' => ['nullable', 'numeric'],
+            'channel_code' => ['nullable', 'string'],
+            'insert_id' => ['nullable', 'string'],
         ]);
 
         $payment = PaymentTransaction::where('transaction_id', $validated['transaction_id'])->first();
@@ -183,12 +226,23 @@ class PaymentController extends Controller
         }
 
         $status = $validated['transaction_status'] === '00' ? 'SUCCESS' : 'FAILED';
+        $transactionDate = isset($validated['transaction_date'])
+            ? Carbon::parse($validated['transaction_date'])
+            : null;
 
         $payment->update([
             'status' => $status,
             'payment_code' => $validated['payment_code'] ?? $payment->payment_code,
+            'channel_code' => $validated['channel_code'] ?? $payment->channel_code,
+            'transaction_amount' => isset($validated['transaction_amount'])
+                ? (int) $validated['transaction_amount']
+                : $payment->transaction_amount,
+            'transaction_date' => $transactionDate ?? $payment->transaction_date,
+            'transaction_expire' => isset($validated['transaction_expire'])
+                ? Carbon::parse($validated['transaction_expire'])
+                : $payment->transaction_expire,
             'payment_date' => $status === 'SUCCESS'
-                ? Carbon::parse($validated['transaction_date'] ?? now())
+                ? ($transactionDate ?? now())
                 : null,
             'callback_payload' => $request->all(),
             'gateway_response' => array_merge($payment->gateway_response ?? [], [
@@ -203,8 +257,12 @@ class PaymentController extends Controller
                 'transaction_id' => $payment->transaction_id,
                 'transaction_status' => $validated['transaction_status'],
                 'internal_status' => $status,
+                'transaction_message' => $validated['transaction_message'] ?? null,
                 'payment_code' => $payment->payment_code,
-                'transaction_date' => $validated['transaction_date'] ?? null,
+                'channel_code' => $payment->channel_code,
+                'insert_id' => $validated['insert_id'] ?? null,
+                'transaction_date' => $this->formatWib($transactionDate),
+                'transaction_expire' => $this->formatWib($validated['transaction_expire'] ?? null),
                 'processed_at' => now()->toISOString(),
             ],
         ]);
@@ -258,15 +316,9 @@ class PaymentController extends Controller
     {
         $endpoint = config('services.payment_gateway.initiate_url');
 
-        if (! $endpoint) {
-            return $this->fakeGatewayResponse($payload, $expiresAt);
-        }
+        abort_if(! $endpoint, 500, 'Payment gateway URL is not configured.');
 
-        $response = Http::withHeaders([
-                'X-Secret-Key' => (string) config('services.payment_gateway.secret_key'),
-                'X-Client-Key' => (string) config('services.payment_gateway.client_key'),
-                'X-App-Id' => (string) config('services.payment_gateway.app_id'),
-            ])
+        $response = Http::withHeaders($this->buildGatewayHeaders())
             ->acceptJson()
             ->post($endpoint, $this->buildGatewayPayload($payload));
 
@@ -275,9 +327,89 @@ class PaymentController extends Controller
         return $response->json();
     }
 
+    private function saveTransaction(
+        array $validated,
+        array $payload,
+        array $gatewayResponse,
+        Carbon $createdAt,
+        Carbon $expiresAt,
+        array $pgData = [],
+        string $status = 'PENDING',
+    ): PaymentTransaction {
+        return PaymentTransaction::create([
+            'id' => (string) Str::uuid(),
+            'transaction_id' => $payload['transactionId'],
+            'user_id' => Auth::id(),
+            'channel_code' => config('services.payment_gateway.channel_code'),
+            'customer_phone' => $validated['phone'],
+            'customer_email' => $validated['email'],
+            'customer_name' => $validated['name'],
+            'transaction_amount' => (int) $validated['amount'],
+            'product_category' => $payload['productCategory'],
+            'product_type' => $payload['productType'],
+            'product_detail' => $payload['productDetail'],
+            'status' => $status,
+            'payment_code' => $pgData['payment_code'] ?? null,
+            'qris_url' => $pgData['qris_url'] ?? null,
+            'redirect_url' => $pgData['redirect_url'] ?? null,
+            'transaction_date' => $createdAt,
+            'transaction_expire' => $pgData['transaction_expire'] ?? $expiresAt,
+            'gateway_response' => $gatewayResponse,
+        ]);
+    }
+
+    private function formatWib(Carbon|string|null $dateTime): ?string
+    {
+        if (! $dateTime) {
+            return null;
+        }
+
+        return Carbon::parse($dateTime)->timezone('Asia/Jakarta')->format('Y-m-d H:i:s').' WIB';
+    }
+
+    private function extractGatewayData(array $gatewayResponse): array
+    {
+        return [
+            'payment_code' => data_get($gatewayResponse, 'data.payment_code')
+                ?? data_get($gatewayResponse, 'payment_code')
+                ?? data_get($gatewayResponse, 'data.paymentCode')
+                ?? data_get($gatewayResponse, 'paymentCode'),
+            'qris_url' => data_get($gatewayResponse, 'data.qris_url')
+                ?? data_get($gatewayResponse, 'qris_url')
+                ?? data_get($gatewayResponse, 'data.qrisUrl')
+                ?? data_get($gatewayResponse, 'qrisUrl')
+                ?? data_get($gatewayResponse, 'data.qris')
+                ?? data_get($gatewayResponse, 'qris')
+                ?? data_get($gatewayResponse, 'data.qr_code')
+                ?? data_get($gatewayResponse, 'qr_code')
+                ?? data_get($gatewayResponse, 'data.qrCode')
+                ?? data_get($gatewayResponse, 'qrCode'),
+            'redirect_url' => data_get($gatewayResponse, 'data.redirect_url')
+                ?? data_get($gatewayResponse, 'redirect_url')
+                ?? data_get($gatewayResponse, 'data.redirectUrl')
+                ?? data_get($gatewayResponse, 'redirectUrl'),
+            'transaction_expire' => data_get($gatewayResponse, 'data.transaction_expire')
+                ?? data_get($gatewayResponse, 'transaction_expire')
+                ?? data_get($gatewayResponse, 'data.transactionExpire')
+                ?? data_get($gatewayResponse, 'transactionExpire'),
+        ];
+    }
+
+    private function isDirectImageSource(?string $qris): bool
+    {
+        if (! $qris) {
+            return false;
+        }
+
+        return str_starts_with($qris, 'http://')
+            || str_starts_with($qris, 'https://')
+            || str_starts_with($qris, 'data:image/');
+    }
+
     private function buildGatewayPayload(array $payload): array
     {
         return [
+            'channel_code' => config('services.payment_gateway.channel_code'),
             'transaction_id' => $payload['transactionId'],
             'customer_phone' => $payload['customerPhone'],
             'customer_email' => $payload['customerEmail'],
@@ -286,26 +418,45 @@ class PaymentController extends Controller
             'product_category' => $payload['productCategory'],
             'product_type' => $payload['productType'],
             'product_detail' => $payload['productDetail'],
-            'secret_key' => config('services.payment_gateway.secret_key'),
-            'client_key' => config('services.payment_gateway.client_key'),
-            'app_id' => config('services.payment_gateway.app_id'),
-            'channel_code' => config('services.payment_gateway.channel_code'),
         ];
     }
 
-    private function fakeGatewayResponse(array $payload, Carbon $expiresAt): array
+    private function buildGatewayHeaders(): array
     {
+        $date = now('Asia/Jakarta')->format('D, d M Y H:i:s O');
+        $appId = (string) config('services.payment_gateway.app_id');
+        $clientKey = (string) config('services.payment_gateway.client_key');
+        $secretKey = (string) config('services.payment_gateway.secret_key');
+
         return [
-            'success' => true,
-            'message' => 'Payment initiated successfully',
-            'data' => [
-                'transaction_id' => $payload['transactionId'],
-                'payment_code' => 'QRIS-'.$payload['transactionId'],
-                'qris_url' => null,
-                'transaction_expire' => $expiresAt->toDateTimeString(),
-                'transaction_amount' => $payload['transactionAmount'],
-                'redirect_url' => null,
-            ],
+            'X-Date' => $date,
+            'X-App-ID' => $this->encryptGatewayHeader($appId),
+            'X-Client-Key' => $this->encryptGatewayHeader($clientKey),
+            'X-Signature' => hash('sha256', $date.$appId.$clientKey.$secretKey),
         ];
     }
+
+    private function encryptGatewayHeader(string $value): string
+    {
+        $now = now('Asia/Jakarta');
+        $iv = sprintf(
+            '8%s9%s7%s8%s%s',
+            $now->format('Y'),
+            $now->format('m'),
+            $now->format('d'),
+            $now->format('H'),
+            $now->format('i')
+        );
+
+        $encrypted = openssl_encrypt(
+            $value,
+            'AES-256-CBC',
+            substr((string) config('services.payment_gateway.secret_key'), 0, 32),
+            OPENSSL_RAW_DATA,
+            substr($iv, 0, 16)
+        );
+
+        return base64_encode($encrypted);
+    }
+
 }

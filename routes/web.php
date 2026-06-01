@@ -4,8 +4,10 @@ use App\Http\Controllers\PaymentController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PaymentController::class, 'form'])->name('checkout.form');
+Route::post('/', [PaymentController::class, 'callback'])->name('payment.callback.root');
 Route::post('/checkout', [PaymentController::class, 'initiate'])->name('checkout.store');
 Route::get('/payment', [PaymentController::class, 'show'])->name('payment.show');
+Route::get('/payment/{transactionId}/continue', [PaymentController::class, 'continueAfterPayment'])->name('payment.continue');
 Route::get('/payment/{transactionId}/qris.jpg', [PaymentController::class, 'qris'])->name('payment.qris');
 
 Route::prefix('api/payment')->name('payment.api.')->group(function () {

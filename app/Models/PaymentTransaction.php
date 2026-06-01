@@ -28,8 +28,6 @@ class PaymentTransaction extends Model
         'transaction_date',
         'transaction_expire',
         'payment_date',
-        'request_payload',
-        'gateway_payload',
         'gateway_response',
         'callback_payload',
     ];
@@ -41,8 +39,6 @@ class PaymentTransaction extends Model
             'transaction_date' => 'datetime',
             'transaction_expire' => 'datetime',
             'payment_date' => 'datetime',
-            'request_payload' => 'array',
-            'gateway_payload' => 'array',
             'gateway_response' => 'array',
             'callback_payload' => 'array',
         ];
