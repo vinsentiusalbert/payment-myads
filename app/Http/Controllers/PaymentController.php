@@ -62,7 +62,7 @@ class PaymentController extends Controller
             'customerName' => $validated['name'],
             'transactionAmount' => $validated['grand_total_amount'],
             'transactionExpire' => $expiresAt->toDateTimeString(),
-            'productCategory' => $validated['product_category'] ?? 'BAYARAJA',
+            'productCategory' => $validated['product_category'] ?? 'MYADS2',
             'productType' => $validated['product_type'] ?? 'Recharge Coin',
             'productDetail' => $validated['product_detail'] ?? 'Test',
         ];

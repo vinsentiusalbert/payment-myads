@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('customer_email');
             $table->string('customer_name')->nullable();
             $table->unsignedBigInteger('transaction_amount');
-            $table->string('product_category')->default('MYADS');
+            $table->string('product_category')->default('MYADS2');
             $table->string('product_type')->default('ADVERTISEMENT');
             $table->string('product_detail')->default('Advertisement Payment');
             $table->string('status', 50)->default('PENDING')->index();
