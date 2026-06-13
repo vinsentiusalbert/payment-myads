@@ -226,6 +226,22 @@
             </div>
 
             <div class="field">
+                <label for="taxAmount">PPN</label>
+                <div class="control">
+                    <span class="currency-prefix">Rp</span>
+                    <input id="taxAmount" type="text" value="0" readonly tabindex="-1" aria-readonly="true">
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="grandTotal">Grand Total</label>
+                <div class="control">
+                    <span class="currency-prefix">Rp</span>
+                    <input id="grandTotal" type="text" value="0" readonly tabindex="-1" aria-readonly="true">
+                </div>
+            </div>
+
+            <div class="field">
                 <label>Metode Pembayaran</label>
                 <div class="payment-options">
                     <label class="payment-option">
@@ -271,15 +287,24 @@
 
     <script>
         const amountInput = document.getElementById('amount');
+        const taxAmountInput = document.getElementById('taxAmount');
+        const grandTotalInput = document.getElementById('grandTotal');
         const paymentMethodInput = document.getElementById('paymentMethod');
         const bankOptions = document.getElementById('bankOptions');
         const paymentTypeInputs = document.querySelectorAll('input[name="payment_type"]');
         const bankInputs = document.querySelectorAll('input[name="va_bank"]');
 
-        amountInput.addEventListener('input', () => {
+        function updateAmounts() {
             const digits = amountInput.value.replace(/\D/g, '');
             amountInput.value = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-        });
+            const dpp = Number(digits || 0);
+            const ppn = Math.round((dpp * 11 / 12) * 0.12);
+            taxAmountInput.value = ppn.toLocaleString('id-ID');
+            grandTotalInput.value = (dpp + ppn).toLocaleString('id-ID');
+        }
+
+        amountInput.addEventListener('input', updateAmounts);
+        updateAmounts();
 
         function syncPaymentMethod() {
             const paymentType = document.querySelector('input[name="payment_type"]:checked')?.value;

@@ -18,6 +18,8 @@ class PaymentTransaction extends Model
         'customer_email',
         'customer_name',
         'transaction_amount',
+        'tax_amount',
+        'grand_total_amount',
         'product_category',
         'product_type',
         'product_detail',
@@ -36,6 +38,8 @@ class PaymentTransaction extends Model
     {
         return [
             'transaction_amount' => 'integer',
+            'tax_amount' => 'integer',
+            'grand_total_amount' => 'integer',
             'transaction_date' => 'datetime',
             'transaction_expire' => 'datetime',
             'payment_date' => 'datetime',

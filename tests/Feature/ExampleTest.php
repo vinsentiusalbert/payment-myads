@@ -46,6 +46,8 @@ class ExampleTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Lengkapi Data Anda');
         $response->assertSee('Amount');
+        $response->assertSee('PPN');
+        $response->assertSee('Grand Total');
         $response->assertSee('QRIS');
         $response->assertSee('Virtual Account');
         $response->assertSee('BSI');
@@ -132,8 +134,12 @@ class ExampleTest extends TestCase
         $this->assertDatabaseHas('payment_transactions', [
             'customer_email' => 'budi@myads.id',
             'transaction_amount' => 100000,
+            'tax_amount' => 11000,
+            'grand_total_amount' => 111000,
             'status' => 'PENDING',
         ]);
+
+        Http::assertSent(fn ($request) => $request['transaction_amount'] === 111000);
 
         $transaction = \App\Models\PaymentTransaction::first();
 
@@ -444,7 +450,8 @@ class ExampleTest extends TestCase
             ->assertSee(route('payment.qris', $transaction->transaction_id))
             ->assertSee(route('payment.continue', $transaction->transaction_id))
             ->assertSee('https://myads.telkomsel.com/login')
-            ->assertSee('Download QRIS');
+            ->assertSee('Download QRIS')
+            ->assertDontSee('Virtual Account');
 
         $this->get("/payment/{$transaction->transaction_id}/qris.jpg")
             ->assertOk()

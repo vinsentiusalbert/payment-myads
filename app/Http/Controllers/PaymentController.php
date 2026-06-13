@@ -48,6 +48,8 @@ class PaymentController extends Controller
             'product_detail' => ['nullable', 'string', 'max:180'],
         ]);
 
+        $validated['tax_amount'] = $this->calculatePpn((int) $validated['amount']);
+        $validated['grand_total_amount'] = (int) $validated['amount'] + $validated['tax_amount'];
         $channelCode = $this->paymentChannels()[$validated['payment_method']];
         $createdAt = now();
         $transactionId = $createdAt->getTimestampMs().random_int(1000, 9999);
@@ -58,7 +60,7 @@ class PaymentController extends Controller
             'customerPhone' => $validated['phone'],
             'customerEmail' => $validated['email'],
             'customerName' => $validated['name'],
-            'transactionAmount' => (int) $validated['amount'],
+            'transactionAmount' => $validated['grand_total_amount'],
             'transactionExpire' => $expiresAt->toDateTimeString(),
             'productCategory' => $validated['product_category'] ?? 'BAYARAJA',
             'productType' => $validated['product_type'] ?? 'Recharge Coin',
@@ -127,6 +129,8 @@ class PaymentController extends Controller
                     'qris_url' => $transaction->qris_url,
                     'transaction_expire' => $this->formatWib($transaction->transaction_expire),
                     'transaction_amount' => $transaction->transaction_amount,
+                    'tax_amount' => $transaction->tax_amount,
+                    'grand_total_amount' => $transaction->grand_total_amount,
                     'redirect_url' => $transaction->redirect_url,
                     'gateway_response' => $transaction->gateway_response,
                 ],
@@ -247,9 +251,9 @@ class PaymentController extends Controller
             'status' => $status,
             'payment_code' => $validated['payment_code'] ?? $payment->payment_code,
             'channel_code' => $validated['channel_code'] ?? $payment->channel_code,
-            'transaction_amount' => isset($validated['transaction_amount'])
+            'grand_total_amount' => isset($validated['transaction_amount'])
                 ? (int) $validated['transaction_amount']
-                : $payment->transaction_amount,
+                : $payment->grand_total_amount,
             'transaction_date' => $transactionDate ?? $payment->transaction_date,
             'transaction_expire' => isset($validated['transaction_expire'])
                 ? Carbon::parse($validated['transaction_expire'])
@@ -359,6 +363,8 @@ class PaymentController extends Controller
             'customer_email' => $validated['email'],
             'customer_name' => $validated['name'],
             'transaction_amount' => (int) $validated['amount'],
+            'tax_amount' => $validated['tax_amount'],
+            'grand_total_amount' => $validated['grand_total_amount'],
             'product_category' => $payload['productCategory'],
             'product_type' => $payload['productType'],
             'product_detail' => $payload['productDetail'],
@@ -379,6 +385,11 @@ class PaymentController extends Controller
         }
 
         return Carbon::parse($dateTime)->timezone('Asia/Jakarta')->format('Y-m-d H:i:s').' WIB';
+    }
+
+    private function calculatePpn(int $dpp): int
+    {
+        return (int) round(($dpp * 11 / 12) * 0.12);
     }
 
     private function extractGatewayData(array $gatewayResponse): array

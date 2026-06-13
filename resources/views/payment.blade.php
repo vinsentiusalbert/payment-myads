@@ -82,6 +82,9 @@
             margin: 20px 0 28px;
             border-bottom: 1px solid #dbe3ee;
         }
+        .tabs.single {
+            grid-template-columns: 1fr;
+        }
         .tab {
             padding: 0 8px 14px;
             text-align: center;
@@ -242,7 +245,9 @@
             <div><strong>{{ $payment->customer_name }}</strong></div>
             <div>{{ $payment->customer_email }} - {{ $payment->customer_phone }}</div>
             <div>Transaction ID: <strong>{{ $payment->transaction_id }}</strong></div>
-            <div>Total: <strong>Rp {{ number_format($payment->transaction_amount, 0, ',', '.') }}</strong></div>
+            <div>Amount: <strong>Rp {{ number_format($payment->transaction_amount, 0, ',', '.') }}</strong></div>
+            <div>PPN: <strong>Rp {{ number_format($payment->tax_amount, 0, ',', '.') }}</strong></div>
+            <div>Grand Total: <strong>Rp {{ number_format($payment->grand_total_amount, 0, ',', '.') }}</strong></div>
             <div class="status">{{ $payment->status }}</div>
         </div>
 
@@ -253,9 +258,11 @@
             $isQris = $selectedMethod === 'qris';
         @endphp
 
-        <div class="tabs" role="tablist">
+        <div class="tabs {{ $isQris ? 'single' : '' }}" role="tablist">
             <div class="tab {{ $isQris ? 'active' : '' }}">QRIS / Barcode</div>
-            <div class="tab {{ ! $isQris ? 'active' : '' }}">Virtual Account</div>
+            @unless ($isQris)
+                <div class="tab active">Virtual Account</div>
+            @endunless
         </div>
 
         @if ($isQris)
