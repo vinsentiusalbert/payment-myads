@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 32" role="img" aria-labelledby="title">
+  <title id="title">PermataBank</title>
+  <path fill="#006db6" d="m15 4 6 3-7 20-5-9 6-14Z"/>
+  <path fill="#7ab800" d="m27 4-6 3 7 20 5-9-6-14Z"/>
+  <path fill="#d71920" d="m21 2-6 2 6 16 6-16-6-2Z"/>
+  <path fill="#232323" d="M36 9h10c5 0 8 3 8 7 0 5-3 8-8 8h-4v7h-6V9Zm6 5v5h3c2 0 3-1 3-3 0-1-1-2-3-2h-3Zm14-5h6v22h-6V9Z"/>
+</svg>

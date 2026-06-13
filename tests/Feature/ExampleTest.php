@@ -46,6 +46,67 @@ class ExampleTest extends TestCase
         $response->assertStatus(200);
         $response->assertSee('Lengkapi Data Anda');
         $response->assertSee('Amount');
+        $response->assertSee('QRIS');
+        $response->assertSee('Virtual Account');
+        $response->assertSee('BSI');
+        $response->assertSee('BNI');
+        $response->assertSee('Permata');
+        $response->assertSee('Mandiri');
+    }
+
+    public function test_checkout_uses_selected_virtual_account_channel(): void
+    {
+        config(['services.payment_gateway.channels.bni' => 'DEVBNI']);
+        $redirectUrl = 'https://live.finpay.id/pg/payment/card/v2/access/test-token';
+        $this->fakeGatewaySuccess([
+            'channel_code' => 'DEVBNI',
+            'qris_url' => null,
+            'payment_code' => '88081234567890',
+            'redirect_url' => $redirectUrl,
+        ]);
+
+        $response = $this->post('/checkout', [
+            'name' => 'Budi Santoso',
+            'email' => 'budi@myads.id',
+            'phone' => '081234567890',
+            'amount' => 100000,
+            'payment_method' => 'bni',
+        ]);
+
+        $response->assertRedirect($redirectUrl);
+
+        Http::assertSent(fn ($request) => $request['channel_code'] === 'DEVBNI');
+
+        $this->assertDatabaseHas('payment_transactions', [
+            'channel_code' => 'DEVBNI',
+            'payment_code' => '88081234567890',
+            'redirect_url' => $redirectUrl,
+        ]);
+    }
+
+    public function test_virtual_account_without_redirect_url_falls_back_to_payment_page(): void
+    {
+        config(['services.payment_gateway.channels.bsi' => 'FINBSIVA']);
+        $this->fakeGatewaySuccess([
+            'channel_code' => 'FINBSIVA',
+            'qris_url' => '',
+            'payment_code' => '2987000003260376',
+            'redirect_url' => '',
+        ]);
+
+        $response = $this->post('/checkout', [
+            'name' => 'Budi Santoso',
+            'email' => 'budi@myads.id',
+            'phone' => '081234567890',
+            'amount' => 17200,
+            'payment_method' => 'bsi',
+        ]);
+
+        $response->assertRedirect('/payment');
+
+        $this->followRedirects($response)
+            ->assertSee('Virtual Account BSI')
+            ->assertSee('2987000003260376');
     }
 
     public function test_checkout_redirects_to_payment_page(): void

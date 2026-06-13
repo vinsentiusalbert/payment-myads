@@ -97,6 +97,57 @@
             color: #dc2626;
             font-size: 13px;
         }
+        .payment-options { display: grid; gap: 10px; }
+        .payment-option {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-height: 52px;
+            padding: 12px 14px;
+            border: 1px solid #dbe3ee;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 800;
+            box-shadow: 0 1px 5px rgba(15, 23, 42, .05);
+        }
+        .payment-option:has(input:checked), .bank-option:has(input:checked) {
+            border-color: #1d6cff;
+            color: #0967f6;
+            background: #f5f9ff;
+        }
+        .payment-option input, .bank-option input {
+            width: 18px;
+            height: 18px;
+            margin: 0;
+            accent-color: #0967f6;
+        }
+        .payment-option .icon { color: #0967f6; }
+        .bank-options {
+            display: none;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding-left: 30px;
+        }
+        .bank-options.is-visible { display: grid; }
+        .bank-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-height: 42px;
+            padding: 8px 10px;
+            border: 1px solid #dbe3ee;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 800;
+        }
+        .bank-logo {
+            width: 30px;
+            height: 22px;
+            flex: 0 0 30px;
+            object-fit: contain;
+        }
         button {
             width: 100%;
             height: 54px;
@@ -174,6 +225,38 @@
                 @error('amount') <div class="error">{{ $message }}</div> @enderror
             </div>
 
+            <div class="field">
+                <label>Metode Pembayaran</label>
+                <div class="payment-options">
+                    <label class="payment-option">
+                        <input type="radio" name="payment_type" value="qris" {{ old('payment_type', 'qris') === 'qris' ? 'checked' : '' }}>
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h3v3h-3zM18 18h3v3h-3zM18 14h3M14 18v3"/></svg>
+                        QRIS
+                    </label>
+                    <label class="payment-option">
+                        <input type="radio" name="payment_type" value="va" {{ old('payment_type') === 'va' ? 'checked' : '' }}>
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V9l7-4 7 4v12"/><path d="M9 21v-8h6v8"/><path d="M7 9h10"/></svg>
+                        Virtual Account
+                    </label>
+                    <div class="bank-options" id="bankOptions">
+                        @foreach ([
+                            'bsi' => ['label' => 'BSI', 'logo' => 'bsi.svg'],
+                            'bni' => ['label' => 'BNI', 'logo' => 'bni.png'],
+                            'permata' => ['label' => 'Permata', 'logo' => 'permata.png'],
+                            'mandiri' => ['label' => 'Mandiri', 'logo' => 'mandiri.png'],
+                        ] as $value => $bank)
+                            <label class="bank-option">
+                                <input type="radio" name="va_bank" value="{{ $value }}" {{ old('va_bank') === $value ? 'checked' : '' }}>
+                                <img class="bank-logo" src="{{ asset('assets/banks/'.$bank['logo']) }}" alt="" aria-hidden="true">
+                                {{ $bank['label'] }}
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+                <input type="hidden" name="payment_method" id="paymentMethod" value="{{ old('payment_method', 'qris') }}">
+                @error('payment_method') <div class="error">{{ $message }}</div> @enderror
+            </div>
+
             <button type="submit">
                 <svg class="icon" style="color:#fff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
                 Bayar
@@ -188,11 +271,27 @@
 
     <script>
         const amountInput = document.getElementById('amount');
+        const paymentMethodInput = document.getElementById('paymentMethod');
+        const bankOptions = document.getElementById('bankOptions');
+        const paymentTypeInputs = document.querySelectorAll('input[name="payment_type"]');
+        const bankInputs = document.querySelectorAll('input[name="va_bank"]');
 
         amountInput.addEventListener('input', () => {
             const digits = amountInput.value.replace(/\D/g, '');
             amountInput.value = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
         });
+
+        function syncPaymentMethod() {
+            const paymentType = document.querySelector('input[name="payment_type"]:checked')?.value;
+            const selectedBank = document.querySelector('input[name="va_bank"]:checked')?.value;
+
+            bankOptions.classList.toggle('is-visible', paymentType === 'va');
+            paymentMethodInput.value = paymentType === 'va' ? (selectedBank || '') : 'qris';
+        }
+
+        paymentTypeInputs.forEach((input) => input.addEventListener('change', syncPaymentMethod));
+        bankInputs.forEach((input) => input.addEventListener('change', syncPaymentMethod));
+        syncPaymentMethod();
     </script>
 </body>
 </html>

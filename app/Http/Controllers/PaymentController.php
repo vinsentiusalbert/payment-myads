@@ -17,6 +17,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class PaymentController extends Controller
@@ -33,6 +34,7 @@ class PaymentController extends Controller
             'email' => $request->input('email', $request->input('customer_email')),
             'phone' => $request->input('phone', $request->input('customer_phone')),
             'amount' => preg_replace('/\D/', '', (string) $request->input('amount', $request->input('transaction_amount'))),
+            'payment_method' => $request->input('payment_method', 'qris'),
         ]);
 
         $validated = $request->validate([
@@ -40,11 +42,13 @@ class PaymentController extends Controller
             'email' => ['required', 'email', 'max:150'],
             'phone' => ['required', 'string', 'max:25'],
             'amount' => ['required', 'integer', 'min:1000'],
+            'payment_method' => ['required', 'string', Rule::in(array_keys($this->paymentChannels()))],
             'product_category' => ['nullable', 'string', 'max:80'],
             'product_type' => ['nullable', 'string', 'max:80'],
             'product_detail' => ['nullable', 'string', 'max:180'],
         ]);
 
+        $channelCode = $this->paymentChannels()[$validated['payment_method']];
         $createdAt = now();
         $transactionId = $createdAt->getTimestampMs().random_int(1000, 9999);
         $expiresAt = $createdAt->copy()->addMinutes(15);
@@ -62,7 +66,7 @@ class PaymentController extends Controller
         ];
 
         try {
-            $gatewayResponse = $this->initiateGatewayPayment($payload, $expiresAt);
+            $gatewayResponse = $this->initiateGatewayPayment($payload, $channelCode);
         } catch (RequestException $exception) {
             $gatewayResponse = $exception->response?->json() ?? [
                 'success' => false,
@@ -75,6 +79,7 @@ class PaymentController extends Controller
                 gatewayResponse: $gatewayResponse,
                 createdAt: $createdAt,
                 expiresAt: $expiresAt,
+                channelCode: $channelCode,
                 status: 'FAILED'
             );
 
@@ -105,6 +110,7 @@ class PaymentController extends Controller
             gatewayResponse: $gatewayResponse,
             createdAt: $createdAt,
             expiresAt: $expiresAt,
+            channelCode: $channelCode,
             pgData: $pgData
         );
 
@@ -125,6 +131,13 @@ class PaymentController extends Controller
                     'gateway_response' => $transaction->gateway_response,
                 ],
             ]);
+        }
+
+        if (
+            $validated['payment_method'] !== 'qris'
+            && $this->isExternalPaymentUrl($transaction->redirect_url)
+        ) {
+            return redirect()->away($transaction->redirect_url);
         }
 
         return redirect()->route('payment.show');
@@ -312,7 +325,7 @@ class PaymentController extends Controller
         ]);
     }
 
-    private function initiateGatewayPayment(array $payload, Carbon $expiresAt): array
+    private function initiateGatewayPayment(array $payload, string $channelCode): array
     {
         $endpoint = config('services.payment_gateway.initiate_url');
 
@@ -320,7 +333,7 @@ class PaymentController extends Controller
 
         $response = Http::withHeaders($this->buildGatewayHeaders())
             ->acceptJson()
-            ->post($endpoint, $this->buildGatewayPayload($payload));
+            ->post($endpoint, $this->buildGatewayPayload($payload, $channelCode));
 
         $response->throw();
 
@@ -333,6 +346,7 @@ class PaymentController extends Controller
         array $gatewayResponse,
         Carbon $createdAt,
         Carbon $expiresAt,
+        string $channelCode,
         array $pgData = [],
         string $status = 'PENDING',
     ): PaymentTransaction {
@@ -340,7 +354,7 @@ class PaymentController extends Controller
             'id' => (string) Str::uuid(),
             'transaction_id' => $payload['transactionId'],
             'user_id' => Auth::id(),
-            'channel_code' => config('services.payment_gateway.channel_code'),
+            'channel_code' => $channelCode,
             'customer_phone' => $validated['phone'],
             'customer_email' => $validated['email'],
             'customer_name' => $validated['name'],
@@ -406,10 +420,19 @@ class PaymentController extends Controller
             || str_starts_with($qris, 'data:image/');
     }
 
-    private function buildGatewayPayload(array $payload): array
+    private function isExternalPaymentUrl(?string $url): bool
+    {
+        if (! $url || ! filter_var($url, FILTER_VALIDATE_URL)) {
+            return false;
+        }
+
+        return in_array(parse_url($url, PHP_URL_SCHEME), ['http', 'https'], true);
+    }
+
+    private function buildGatewayPayload(array $payload, string $channelCode): array
     {
         return [
-            'channel_code' => config('services.payment_gateway.channel_code'),
+            'channel_code' => $channelCode,
             'transaction_id' => $payload['transactionId'],
             'customer_phone' => $payload['customerPhone'],
             'customer_email' => $payload['customerEmail'],
@@ -419,6 +442,14 @@ class PaymentController extends Controller
             'product_type' => $payload['productType'],
             'product_detail' => $payload['productDetail'],
         ];
+    }
+
+    private function paymentChannels(): array
+    {
+        return array_filter(
+            config('services.payment_gateway.channels', []),
+            fn ($channelCode) => filled($channelCode)
+        );
     }
 
     private function buildGatewayHeaders(): array

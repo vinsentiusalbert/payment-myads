@@ -246,41 +246,55 @@
             <div class="status">{{ $payment->status }}</div>
         </div>
 
+        @php
+            $paymentChannels = config('services.payment_gateway.channels', []);
+            $selectedMethod = array_search($payment->channel_code, $paymentChannels, true) ?: 'qris';
+            $bankNames = ['bsi' => 'BSI', 'bni' => 'BNI', 'permata' => 'Permata', 'mandiri' => 'Mandiri'];
+            $isQris = $selectedMethod === 'qris';
+        @endphp
+
         <div class="tabs" role="tablist">
-            <div class="tab active">QRIS / Barcode</div>
-            <div class="tab">Virtual Account</div>
+            <div class="tab {{ $isQris ? 'active' : '' }}">QRIS / Barcode</div>
+            <div class="tab {{ ! $isQris ? 'active' : '' }}">Virtual Account</div>
         </div>
 
-        <p class="instruction">Scan kode QR berikut dengan aplikasi pembayaran Anda</p>
-        <div class="qr-box" aria-label="QRIS pembayaran">
-            @if ($payment->qris_url)
-                <div class="qr-loading" id="qrLoading" aria-live="polite">
-                    <div class="qr-spinner" aria-hidden="true"></div>
-                    Memuat QRIS
-                </div>
-                <a class="qris-link" href="{{ route('payment.continue', $payment->transaction_id) }}" aria-label="Lanjut ke MyAds">
-                    <img class="qris-image" id="qrisImage" src="{{ str_starts_with($payment->qris_url, 'http://') || str_starts_with($payment->qris_url, 'https://') || str_starts_with($payment->qris_url, 'data:image/') ? $payment->qris_url : route('payment.qris', $payment->transaction_id) }}" alt="QRIS {{ $payment->transaction_id }}">
-                </a>
-            @else
-                <div class="qris-empty">QRIS dari API belum tersedia.</div>
+        @if ($isQris)
+            <p class="instruction">Scan kode QR berikut dengan aplikasi pembayaran Anda</p>
+            <div class="qr-box" aria-label="QRIS pembayaran">
+                @if ($payment->qris_url)
+                    <div class="qr-loading" id="qrLoading" aria-live="polite">
+                        <div class="qr-spinner" aria-hidden="true"></div>
+                        Memuat QRIS
+                    </div>
+                    <a class="qris-link" href="{{ route('payment.continue', $payment->transaction_id) }}" aria-label="Lanjut ke MyAds">
+                        <img class="qris-image" id="qrisImage" src="{{ str_starts_with($payment->qris_url, 'http://') || str_starts_with($payment->qris_url, 'https://') || str_starts_with($payment->qris_url, 'data:image/') ? $payment->qris_url : route('payment.qris', $payment->transaction_id) }}" alt="QRIS {{ $payment->transaction_id }}">
+                    </a>
+                @else
+                    <div class="qris-empty">QRIS dari API belum tersedia.</div>
+                @endif
+            </div>
+            @if ($payment->payment_code)
+                <div class="payment-code">Kode pembayaran: {{ $payment->payment_code }}</div>
             @endif
-        </div>
-        @if ($payment->payment_code)
-            <div class="payment-code">Kode pembayaran: {{ $payment->payment_code }}</div>
+            @if ($payment->qris_url)
+                <a class="download-qris" href="{{ route('payment.qris', $payment->transaction_id) }}" download="qris-{{ $payment->transaction_id }}.jpg">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+                    Download QRIS
+                </a>
+            @endif
+        @else
+            <p class="instruction">Bayar melalui Virtual Account {{ $bankNames[$selectedMethod] ?? strtoupper($selectedMethod) }}</p>
+            <div class="qr-box" aria-label="Nomor Virtual Account">
+                @if ($payment->payment_code)
+                    <div style="padding:20px;text-align:center">
+                        <div class="section-label">Nomor Virtual Account</div>
+                        <strong style="font-size:20px;word-break:break-all">{{ $payment->payment_code }}</strong>
+                    </div>
+                @else
+                    <div class="qris-empty">Nomor Virtual Account dari API belum tersedia.</div>
+                @endif
+            </div>
         @endif
-        @if ($payment->qris_url)
-            <a class="download-qris" href="{{ route('payment.qris', $payment->transaction_id) }}" download="qris-{{ $payment->transaction_id }}.jpg">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
-                Download QRIS
-            </a>
-        @endif
-
-        <p class="section-label">Atau gunakan metode lain</p>
-        <button class="method" type="button">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18"/><path d="M5 21V9l7-4 7 4v12"/><path d="M9 21v-8h6v8"/><path d="M7 9h10"/></svg>
-            Virtual Account
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-        </button>
 
         <div class="note">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>

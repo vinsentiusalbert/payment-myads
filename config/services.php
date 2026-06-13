@@ -42,6 +42,13 @@ return [
         'client_key' => env('CLIENT_KEY'),
         'app_id' => env('APP_ID'),
         'channel_code' => env('CHANNEL_CODE', env('API_KSS_PAYMENT_CHANNEL_CODE')),
+        'channels' => [
+            'qris' => env('PAYMENT_CHANNEL_QRIS', env('CHANNEL_CODE', env('API_KSS_PAYMENT_CHANNEL_CODE', 'DEVQRIS'))),
+            'bsi' => env('PAYMENT_CHANNEL_BSI', 'FINBSIVA'),
+            'bni' => env('PAYMENT_CHANNEL_BNI', 'BNI'),
+            'permata' => env('PAYMENT_CHANNEL_PERMATA', 'PERMATA'),
+            'mandiri' => env('PAYMENT_CHANNEL_MANDIRI', 'MANDIRI'),
+        ],
         'callback_url' => env('PAYMENT_GATEWAY_CALLBACK_URL'),
     ],
 
