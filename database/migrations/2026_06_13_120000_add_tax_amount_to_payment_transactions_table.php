@@ -8,14 +8,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('payment_transactions', function (Blueprint $table) {
+        Schema::table('payment_transactions_cdsi', function (Blueprint $table) {
             $table->unsignedBigInteger('tax_amount')->default(0)->after('transaction_amount');
         });
     }
 
     public function down(): void
     {
-        Schema::table('payment_transactions', function (Blueprint $table) {
+        Schema::table('payment_transactions_cdsi', function (Blueprint $table) {
             $table->dropColumn('tax_amount');
         });
     }

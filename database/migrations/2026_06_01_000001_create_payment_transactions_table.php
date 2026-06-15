@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('payment_transactions', function (Blueprint $table) {
+        Schema::create('payment_transactions_cdsi', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('transaction_id', 191)->unique();
             $table->foreignId('user_id')->nullable()->index();
@@ -34,6 +34,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('payment_transactions');
+        Schema::dropIfExists('payment_transactions_cdsi');
     }
 };

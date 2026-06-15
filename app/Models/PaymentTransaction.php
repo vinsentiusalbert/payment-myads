@@ -9,6 +9,8 @@ class PaymentTransaction extends Model
 {
     use HasUuids;
 
+    protected $table = 'payment_transactions_cdsi';
+
     protected $fillable = [
         'id',
         'transaction_id',

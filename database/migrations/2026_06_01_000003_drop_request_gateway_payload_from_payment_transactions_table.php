@@ -8,10 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('payment_transactions', function (Blueprint $table) {
+        Schema::table('payment_transactions_cdsi', function (Blueprint $table) {
             $columns = array_filter([
-                Schema::hasColumn('payment_transactions', 'request_payload') ? 'request_payload' : null,
-                Schema::hasColumn('payment_transactions', 'gateway_payload') ? 'gateway_payload' : null,
+                Schema::hasColumn('payment_transactions_cdsi', 'request_payload') ? 'request_payload' : null,
+                Schema::hasColumn('payment_transactions_cdsi', 'gateway_payload') ? 'gateway_payload' : null,
             ]);
 
             if ($columns) {
@@ -22,12 +22,12 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('payment_transactions', function (Blueprint $table) {
-            if (! Schema::hasColumn('payment_transactions', 'request_payload')) {
+        Schema::table('payment_transactions_cdsi', function (Blueprint $table) {
+            if (! Schema::hasColumn('payment_transactions_cdsi', 'request_payload')) {
                 $table->json('request_payload')->nullable()->after('payment_date');
             }
 
-            if (! Schema::hasColumn('payment_transactions', 'gateway_payload')) {
+            if (! Schema::hasColumn('payment_transactions_cdsi', 'gateway_payload')) {
                 $table->json('gateway_payload')->nullable()->after('request_payload');
             }
         });

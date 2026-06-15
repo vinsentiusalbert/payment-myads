@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('payment_transactions', function (Blueprint $table) {
+        Schema::table('payment_transactions_cdsi', function (Blueprint $table) {
             $table->json('request_payload')->nullable()->after('payment_date');
             $table->json('gateway_payload')->nullable()->after('request_payload');
             $table->json('callback_payload')->nullable()->after('gateway_response');
@@ -17,7 +17,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('payment_transactions', function (Blueprint $table) {
+        Schema::table('payment_transactions_cdsi', function (Blueprint $table) {
             $table->dropColumn([
                 'request_payload',
                 'gateway_payload',
