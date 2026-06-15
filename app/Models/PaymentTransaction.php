@@ -19,6 +19,7 @@ class PaymentTransaction extends Model
         'customer_phone',
         'customer_email',
         'customer_name',
+        'referral_code',
         'transaction_amount',
         'tax_amount',
         'grand_total_amount',

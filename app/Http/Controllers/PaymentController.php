@@ -41,6 +41,7 @@ class PaymentController extends Controller
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:150'],
             'phone' => ['required', 'string', 'max:25'],
+            'referral_code' => ['nullable', 'string', 'max:80'],
             'amount' => ['required', 'integer', 'min:1000'],
             'payment_method' => ['required', 'string', Rule::in(array_keys($this->paymentChannels()))],
             'product_category' => ['nullable', 'string', 'max:80'],
@@ -333,7 +334,14 @@ class PaymentController extends Controller
     {
         $endpoint = config('services.payment_gateway.initiate_url');
 
-        abort_if(! $endpoint, 500, 'Payment gateway URL is not configured.');
+        abort_if(
+            ! is_string($endpoint)
+            || blank($endpoint)
+            || ! filter_var($endpoint, FILTER_VALIDATE_URL)
+            || ! in_array(parse_url($endpoint, PHP_URL_SCHEME), ['http', 'https'], true),
+            500,
+            'Payment gateway URL is invalid. Please set PAYMENT_GATEWAY_INITIATE_URL or PAYMENT_GATEWAY_BASE_URL with http:// or https:// scheme.'
+        );
 
         $response = Http::withHeaders($this->buildGatewayHeaders())
             ->acceptJson()
@@ -362,6 +370,7 @@ class PaymentController extends Controller
             'customer_phone' => $validated['phone'],
             'customer_email' => $validated['email'],
             'customer_name' => $validated['name'],
+            'referral_code' => $validated['referral_code'] ?? null,
             'transaction_amount' => (int) $validated['amount'],
             'tax_amount' => $validated['tax_amount'],
             'grand_total_amount' => $validated['grand_total_amount'],

@@ -52,6 +52,10 @@
             font-size: 14px;
         }
         .field { margin-bottom: 22px; }
+        .required-mark {
+            color: #dc2626;
+            font-weight: 800;
+        }
         .control {
             display: flex;
             align-items: center;
@@ -190,37 +194,46 @@
         <form method="POST" action="{{ route('checkout.store') }}">
             @csrf
             <div class="field">
-                <label for="name">Nama Lengkap</label>
+                <label for="name">Nama Lengkap <span class="required-mark">(*)</span></label>
                 <div class="control">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
-                    <input id="name" name="name" value="{{ old('name') }}" placeholder="Contoh: Budi Santoso" autocomplete="name">
+                    <input id="name" name="name" value="{{ old('name') }}" placeholder="Contoh: Budi Santoso" autocomplete="name" required>
                 </div>
                 @error('name') <div class="error">{{ $message }}</div> @enderror
             </div>
 
             <div class="field">
-                <label for="email">Email MyAds</label>
+                <label for="email">Email MyAds <span class="required-mark">(*)</span></label>
                 <div class="control">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
-                    <input id="email" name="email" type="email" value="{{ old('email') }}" placeholder="Contoh: budi@myads.id" autocomplete="email">
+                    <input id="email" name="email" type="email" value="{{ old('email') }}" placeholder="Contoh: budi@myads.id" autocomplete="email" required>
                 </div>
                 @error('email') <div class="error">{{ $message }}</div> @enderror
             </div>
 
             <div class="field">
-                <label for="phone">Nomor Telepon</label>
+                <label for="phone">Nomor Telepon <span class="required-mark">(*)</span></label>
                 <div class="control">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.32 1.77.59 2.61a2 2 0 0 1-.45 2.11L8 9.69a16 16 0 0 0 6.31 6.31l1.25-1.25a2 2 0 0 1 2.11-.45c.84.27 1.71.47 2.61.59A2 2 0 0 1 22 16.92z"/></svg>
-                    <input id="phone" name="phone" value="{{ old('phone') }}" placeholder="Contoh: 0812-3456-7890" autocomplete="tel">
+                    <input id="phone" name="phone" value="{{ old('phone') }}" placeholder="Contoh: 0812-3456-7890" autocomplete="tel" required>
                 </div>
                 @error('phone') <div class="error">{{ $message }}</div> @enderror
             </div>
 
             <div class="field">
-                <label for="amount">Amount</label>
+                <label for="referral_code">Referral Code (Optional)</label>
+                <div class="control">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m10 13-2 2a3 3 0 1 1-4-4l2-2"/><path d="m14 11 2-2a3 3 0 1 1 4 4l-2 2"/><path d="M8 16l8-8"/></svg>
+                    <input id="referral_code" name="referral_code" value="{{ old('referral_code') }}" placeholder="Opsional">
+                </div>
+                @error('referral_code') <div class="error">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="field">
+                <label for="amount">Amount <span class="required-mark">(*)</span></label>
                 <div class="control">
                     <span class="currency-prefix">Rp</span>
-                    <input id="amount" name="amount" type="text" value="{{ old('amount') ? number_format((int) preg_replace('/\D/', '', old('amount')), 0, ',', '.') : '' }}" placeholder="Contoh: 100.000" inputmode="numeric" autocomplete="off">
+                    <input id="amount" name="amount" type="text" value="{{ old('amount') ? number_format((int) preg_replace('/\D/', '', old('amount')), 0, ',', '.') : '' }}" placeholder="Contoh: 100.000" inputmode="numeric" autocomplete="off" required>
                 </div>
                 @error('amount') <div class="error">{{ $message }}</div> @enderror
             </div>
@@ -242,7 +255,7 @@
             </div>
 
             <div class="field">
-                <label>Metode Pembayaran</label>
+                <label>Metode Pembayaran <span class="required-mark">(*)</span></label>
                 <div class="payment-options">
                     <label class="payment-option">
                         <input type="radio" name="payment_type" value="qris" {{ old('payment_type', 'qris') === 'qris' ? 'checked' : '' }}>
