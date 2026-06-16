@@ -184,6 +184,21 @@
             font-size: 14px;
             font-weight: 600;
         }
+        .support-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 12px;
+            color: #0967f6;
+            font-size: 14px;
+            font-weight: 800;
+            text-decoration: none;
+        }
+        .support-link:hover {
+            color: #0756cf;
+            text-decoration: underline;
+        }
         @media (max-width: 520px) {
             .modal { padding: 24px 18px; }
             .brand-logo { margin-top: 12px; }
@@ -295,6 +310,9 @@
             <svg class="icon" style="width:18px;height:18px;color:#4f9ac9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
             Data Anda aman dan terlindungi
         </div>
+        <a class="support-link" href="https://wa.me/6282347189584" target="_blank" rel="noopener">
+            Hubungi CS: +62 823-4718-9584
+        </a>
     </main>
 
     <script>

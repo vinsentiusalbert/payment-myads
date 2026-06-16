@@ -54,6 +54,8 @@ class ExampleTest extends TestCase
         $response->assertSee('BNI');
         $response->assertSee('Permata');
         $response->assertSee('Mandiri');
+        $response->assertSee('Hubungi CS: +62 823-4718-9584');
+        $response->assertSee('https://wa.me/6282347189584', false);
     }
 
     public function test_checkout_validates_email_and_phone_number_format(): void
