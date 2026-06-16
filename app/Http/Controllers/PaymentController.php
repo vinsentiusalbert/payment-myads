@@ -211,10 +211,6 @@ class PaymentController extends Controller
     {
         $payment = PaymentTransaction::where('transaction_id', $transactionId)->firstOrFail();
 
-        if ($payment->status === 'SUCCESS') {
-            return redirect()->away('https://myads.telkomsel.com/login');
-        }
-
         $request->session()->put('payment_transaction_id', $payment->transaction_id);
 
         return redirect()->route('payment.show');

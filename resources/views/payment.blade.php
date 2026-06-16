@@ -76,6 +76,10 @@
             font-size: 12px;
             font-weight: 800;
         }
+        .status.success {
+            background: #ecfdf3;
+            color: #15803d;
+        }
         .tabs {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -225,6 +229,44 @@
             font-size: 14px;
             font-weight: 800;
         }
+        .success-panel {
+            margin-top: 22px;
+            padding: 24px 18px;
+            border: 1px solid #cce9d6;
+            border-radius: 10px;
+            background: linear-gradient(180deg, #f5fff8 0%, #ecfdf3 100%);
+            text-align: center;
+        }
+        .success-icon {
+            width: 62px;
+            height: 62px;
+            display: grid;
+            place-items: center;
+            margin: 0 auto 16px;
+            border-radius: 999px;
+            background: #16a34a;
+            color: #ffffff;
+        }
+        .success-title {
+            margin: 0 0 10px;
+            color: #166534;
+            font-size: 24px;
+            font-weight: 800;
+        }
+        .success-name {
+            margin: 0 0 10px;
+            color: #111827;
+            font-size: 16px;
+            font-weight: 800;
+            line-height: 1.5;
+        }
+        .success-copy {
+            margin: 0;
+            color: #475569;
+            font-size: 14px;
+            line-height: 1.6;
+            font-weight: 600;
+        }
         .icon { width: 20px; height: 20px; flex: 0 0 auto; }
         @media (max-width: 480px) {
             .modal { padding: 24px 18px; }
@@ -235,11 +277,16 @@
     </style>
 </head>
 <body>
+    @php
+        $isSuccess = $payment->status === 'SUCCESS';
+    @endphp
     <main class="modal">
         <a href="{{ route('checkout.form') }}" class="close" aria-label="Tutup">&times;</a>
         <img class="brand-logo" src="{{ asset('assets/myads_colour_02.png') }}" alt="MyAds">
-        <h1>Pilih Metode Pembayaran</h1>
-        <div class="timer">Selesaikan pembayaran sebelum <span>{{ $payment->transaction_expire ? $payment->transaction_expire->timezone('Asia/Jakarta')->format('d M Y H:i').' WIB' : '-' }}</span></div>
+        <h1>{{ $isSuccess ? 'Pembayaran Berhasil' : 'Pilih Metode Pembayaran' }}</h1>
+        @unless ($isSuccess)
+            <div class="timer">Selesaikan pembayaran sebelum <span>{{ $payment->transaction_expire ? $payment->transaction_expire->timezone('Asia/Jakarta')->format('d M Y H:i').' WIB' : '-' }}</span></div>
+        @endunless
 
         <div class="summary">
             <div><strong>{{ $payment->customer_name }}</strong></div>
@@ -248,69 +295,80 @@
             <div>Amount: <strong>Rp {{ number_format($payment->transaction_amount, 0, ',', '.') }}</strong></div>
             <div>PPN: <strong>Rp {{ number_format($payment->tax_amount, 0, ',', '.') }}</strong></div>
             <div>Grand Total: <strong>Rp {{ number_format($payment->grand_total_amount, 0, ',', '.') }}</strong></div>
-            <div class="status">{{ $payment->status }}</div>
+            <div class="status {{ $isSuccess ? 'success' : '' }}">{{ $payment->status }}</div>
         </div>
 
-        @php
-            $paymentChannels = config('services.payment_gateway.channels', []);
-            $selectedMethod = array_search($payment->channel_code, $paymentChannels, true) ?: 'qris';
-            $bankNames = ['bsi' => 'BSI', 'bni' => 'BNI', 'permata' => 'Permata', 'mandiri' => 'Mandiri'];
-            $isQris = $selectedMethod === 'qris';
-        @endphp
-
-        <div class="tabs {{ $isQris ? 'single' : '' }}" role="tablist">
-            <div class="tab {{ $isQris ? 'active' : '' }}">QRIS / Barcode</div>
-            @unless ($isQris)
-                <div class="tab active">Virtual Account</div>
-            @endunless
-        </div>
-
-        @if ($isQris)
-            <p class="instruction">Scan kode QR berikut dengan aplikasi pembayaran Anda</p>
-            <div class="qr-box" aria-label="QRIS pembayaran">
-                @if ($payment->qris_url)
-                    <div class="qr-loading" id="qrLoading" aria-live="polite">
-                        <div class="qr-spinner" aria-hidden="true"></div>
-                        Memuat QRIS
-                    </div>
-                    <a class="qris-link" href="{{ route('payment.continue', $payment->transaction_id) }}" aria-label="Lanjut ke MyAds">
-                        <img class="qris-image" id="qrisImage" src="{{ str_starts_with($payment->qris_url, 'http://') || str_starts_with($payment->qris_url, 'https://') || str_starts_with($payment->qris_url, 'data:image/') ? $payment->qris_url : route('payment.qris', $payment->transaction_id) }}" alt="QRIS {{ $payment->transaction_id }}">
-                    </a>
-                @else
-                    <div class="qris-empty">QRIS dari API belum tersedia.</div>
-                @endif
+        @if ($isSuccess)
+            <div class="success-panel">
+                <div class="success-icon" aria-hidden="true">
+                    <svg class="icon" style="width:30px;height:30px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="m5 13 4 4L19 7"/></svg>
+                </div>
+                <p class="success-title">Transaksi Berhasil</p>
+                <p class="success-name">Atas nama : {{ $payment->customer_name }} ({{ $payment->customer_email }})</p>
+                <p class="success-copy">Mohon menunggu saldo akan masuk kurang dari 24 jam.</p>
             </div>
-            @if ($payment->payment_code)
-                <div class="payment-code">Kode pembayaran: {{ $payment->payment_code }}</div>
-            @endif
-            @if ($payment->qris_url)
-                <a class="download-qris" href="{{ route('payment.qris', $payment->transaction_id) }}" download="qris-{{ $payment->transaction_id }}.jpg">
-                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
-                    Download QRIS
-                </a>
-            @endif
         @else
-            <p class="instruction">Bayar melalui Virtual Account {{ $bankNames[$selectedMethod] ?? strtoupper($selectedMethod) }}</p>
-            <div class="qr-box" aria-label="Nomor Virtual Account">
-                @if ($payment->payment_code)
-                    <div style="padding:20px;text-align:center">
-                        <div class="section-label">Nomor Virtual Account</div>
-                        <strong style="font-size:20px;word-break:break-all">{{ $payment->payment_code }}</strong>
-                    </div>
-                @else
-                    <div class="qris-empty">Nomor Virtual Account dari API belum tersedia.</div>
-                @endif
+            @php
+                $paymentChannels = config('services.payment_gateway.channels', []);
+                $selectedMethod = array_search($payment->channel_code, $paymentChannels, true) ?: 'qris';
+                $bankNames = ['bsi' => 'BSI', 'bni' => 'BNI', 'permata' => 'Permata', 'mandiri' => 'Mandiri'];
+                $isQris = $selectedMethod === 'qris';
+            @endphp
+
+            <div class="tabs {{ $isQris ? 'single' : '' }}" role="tablist">
+                <div class="tab {{ $isQris ? 'active' : '' }}">QRIS / Barcode</div>
+                @unless ($isQris)
+                    <div class="tab active">Virtual Account</div>
+                @endunless
             </div>
+
+            @if ($isQris)
+                <p class="instruction">Scan kode QR berikut dengan aplikasi pembayaran Anda</p>
+                <div class="qr-box" aria-label="QRIS pembayaran">
+                    @if ($payment->qris_url)
+                        <div class="qr-loading" id="qrLoading" aria-live="polite">
+                            <div class="qr-spinner" aria-hidden="true"></div>
+                            Memuat QRIS
+                        </div>
+                        <a class="qris-link" href="{{ route('payment.continue', $payment->transaction_id) }}" aria-label="Lanjut ke status pembayaran">
+                            <img class="qris-image" id="qrisImage" src="{{ str_starts_with($payment->qris_url, 'http://') || str_starts_with($payment->qris_url, 'https://') || str_starts_with($payment->qris_url, 'data:image/') ? $payment->qris_url : route('payment.qris', $payment->transaction_id) }}" alt="QRIS {{ $payment->transaction_id }}">
+                        </a>
+                    @else
+                        <div class="qris-empty">QRIS dari API belum tersedia.</div>
+                    @endif
+                </div>
+                @if ($payment->payment_code)
+                    <div class="payment-code">Kode pembayaran: {{ $payment->payment_code }}</div>
+                @endif
+                @if ($payment->qris_url)
+                    <a class="download-qris" href="{{ route('payment.qris', $payment->transaction_id) }}" download="qris-{{ $payment->transaction_id }}.jpg">
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+                        Download QRIS
+                    </a>
+                @endif
+            @else
+                <p class="instruction">Bayar melalui Virtual Account {{ $bankNames[$selectedMethod] ?? strtoupper($selectedMethod) }}</p>
+                <div class="qr-box" aria-label="Nomor Virtual Account">
+                    @if ($payment->payment_code)
+                        <div style="padding:20px;text-align:center">
+                            <div class="section-label">Nomor Virtual Account</div>
+                            <strong style="font-size:20px;word-break:break-all">{{ $payment->payment_code }}</strong>
+                        </div>
+                    @else
+                        <div class="qris-empty">Nomor Virtual Account dari API belum tersedia.</div>
+                    @endif
+                </div>
+            @endif
         @endif
 
         <div class="note">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-            Setelah pembayaran berhasil, sistem akan otomatis menginformasikan kepada kami.
+            {{ $isSuccess ? 'Pembayaran sudah kami terima dan sedang diproses oleh sistem.' : 'Setelah pembayaran berhasil, sistem akan otomatis menginformasikan kepada kami.' }}
         </div>
     </main>
     <script>
         const transactionId = @json($payment->transaction_id);
-        const redirectUrl = 'https://myads.telkomsel.com/login';
+        const statusUrl = @json(route('payment.show'));
         const qrisImage = document.getElementById('qrisImage');
         const qrLoading = document.getElementById('qrLoading');
 
@@ -336,17 +394,15 @@
                 const result = await response.json();
 
                 if (result?.data?.status === 'SUCCESS') {
-                    window.location.href = redirectUrl;
+                    window.location.href = statusUrl;
                 }
             } catch (error) {
             }
         }
 
-        @if ($payment->status === 'SUCCESS')
-            window.location.href = redirectUrl;
-        @else
+        @unless ($isSuccess)
             setInterval(checkPaymentStatus, 3000);
-        @endif
+        @endunless
     </script>
 </body>
 </html>

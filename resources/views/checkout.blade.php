@@ -101,6 +101,12 @@
             color: #dc2626;
             font-size: 13px;
         }
+        .field-note {
+            margin-top: 8px;
+            color: #64748b;
+            font-size: 13px;
+            font-weight: 600;
+        }
         .payment-options { display: grid; gap: 10px; }
         .payment-option {
             display: flex;
@@ -239,19 +245,12 @@
             </div>
 
             <div class="field">
-                <label for="taxAmount">PPN</label>
-                <div class="control">
-                    <span class="currency-prefix">Rp</span>
-                    <input id="taxAmount" type="text" value="0" readonly tabindex="-1" aria-readonly="true">
-                </div>
-            </div>
-
-            <div class="field">
                 <label for="grandTotal">Grand Total</label>
                 <div class="control">
                     <span class="currency-prefix">Rp</span>
                     <input id="grandTotal" type="text" value="0" readonly tabindex="-1" aria-readonly="true">
                 </div>
+                <div class="field-note">*) Include PPN</div>
             </div>
 
             <div class="field">
@@ -300,7 +299,6 @@
 
     <script>
         const amountInput = document.getElementById('amount');
-        const taxAmountInput = document.getElementById('taxAmount');
         const grandTotalInput = document.getElementById('grandTotal');
         const paymentMethodInput = document.getElementById('paymentMethod');
         const bankOptions = document.getElementById('bankOptions');
@@ -312,7 +310,6 @@
             amountInput.value = digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
             const dpp = Number(digits || 0);
             const ppn = Math.round((dpp * 11 / 12) * 0.12);
-            taxAmountInput.value = ppn.toLocaleString('id-ID');
             grandTotalInput.value = (dpp + ppn).toLocaleString('id-ID');
         }
 
