@@ -56,6 +56,21 @@ class ExampleTest extends TestCase
         $response->assertSee('Mandiri');
     }
 
+    public function test_checkout_validates_email_and_phone_number_format(): void
+    {
+        $response = $this->from('/')->post('/checkout', [
+            'name' => 'Budi Santoso',
+            'email' => 'email-tidak-valid',
+            'phone' => '08123abc',
+            'amount' => 100000,
+            'payment_method' => 'qris',
+        ]);
+
+        $response->assertRedirect('/');
+        $response->assertSessionHasErrors(['email', 'phone']);
+        Http::assertNothingSent();
+    }
+
     public function test_checkout_uses_selected_virtual_account_channel(): void
     {
         config(['services.payment_gateway.channels.bni' => 'DEVBNI']);
@@ -510,6 +525,38 @@ class ExampleTest extends TestCase
 
         $this->get('/payment/DONE2026060101/continue')
             ->assertRedirect('https://myads.telkomsel.com/login');
+    }
+
+    public function test_success_payment_page_shows_transaction_number_and_whatsapp_support(): void
+    {
+        \App\Models\PaymentTransaction::create([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'transaction_id' => 'SUCCESS2026060101',
+            'channel_code' => 'DEVQRIS',
+            'customer_phone' => '081311740293',
+            'customer_email' => 'rianpr20@gmail.com',
+            'customer_name' => 'Febriansyah Putra Ramadhan',
+            'transaction_amount' => 10000,
+            'tax_amount' => 1100,
+            'grand_total_amount' => 11100,
+            'product_category' => 'BAYARAJA',
+            'product_type' => 'Recharge Coin',
+            'product_detail' => 'Test',
+            'status' => 'SUCCESS',
+            'transaction_date' => now(),
+            'transaction_expire' => now()->addMinutes(15),
+            'payment_date' => now(),
+            'gateway_response' => [],
+        ]);
+
+        $this->withSession(['payment_transaction_id' => 'SUCCESS2026060101'])
+            ->get('/payment')
+            ->assertOk()
+            ->assertSee('Nomor Transaksi: SUCCESS2026060101')
+            ->assertSee('Simpan nomor transaksi ini sebagai bukti pembayaran.')
+            ->assertSee('Jika ada kendala, hubungi CS +62 823-4718-9584.')
+            ->assertSee('https://wa.me/6282347189584', false)
+            ->assertSee('Hubungi CS via WhatsApp');
     }
 
     public function test_root_url_can_receive_gateway_callback(): void

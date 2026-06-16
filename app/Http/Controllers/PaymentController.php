@@ -39,8 +39,8 @@ class PaymentController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
-            'email' => ['required', 'email', 'max:150'],
-            'phone' => ['required', 'string', 'max:25'],
+            'email' => ['required', 'string', 'email:rfc', 'max:150'],
+            'phone' => ['required', 'regex:/^\d{10,14}$/'],
             'referral_code' => ['nullable', 'string', 'max:80'],
             'amount' => ['required', 'integer', 'min:1000'],
             'payment_method' => ['required', 'string', Rule::in(array_keys($this->paymentChannels()))],

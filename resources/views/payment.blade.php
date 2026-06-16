@@ -267,6 +267,42 @@
             line-height: 1.6;
             font-weight: 600;
         }
+        .success-transaction {
+            margin: 16px 0 0;
+            padding: 12px;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            background: #ffffff;
+            color: #14532d;
+            font-size: 14px;
+            line-height: 1.5;
+            font-weight: 800;
+            word-break: break-word;
+        }
+        .success-warning {
+            margin: 12px 0 0;
+            color: #854d0e;
+            font-size: 13px;
+            line-height: 1.5;
+            font-weight: 800;
+        }
+        .whatsapp-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 16px;
+            padding: 11px 14px;
+            border-radius: 7px;
+            background: #16a34a;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 800;
+        }
+        .whatsapp-button:hover {
+            background: #15803d;
+        }
         .icon { width: 20px; height: 20px; flex: 0 0 auto; }
         @media (max-width: 480px) {
             .modal { padding: 24px 18px; }
@@ -299,6 +335,9 @@
         </div>
 
         @if ($isSuccess)
+            @php
+                $whatsappMessage = 'Halo CS MyAds, saya mengalami kendala pada transaksi '.$payment->transaction_id;
+            @endphp
             <div class="success-panel">
                 <div class="success-icon" aria-hidden="true">
                     <svg class="icon" style="width:30px;height:30px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="m5 13 4 4L19 7"/></svg>
@@ -306,6 +345,15 @@
                 <p class="success-title">Transaksi Berhasil</p>
                 <p class="success-name">Atas nama : {{ $payment->customer_name }} ({{ $payment->customer_email }})</p>
                 <p class="success-copy">Mohon menunggu saldo akan masuk kurang dari 24 jam.</p>
+                <div class="success-transaction">
+                    Nomor Transaksi: {{ $payment->transaction_id }}
+                </div>
+                <p class="success-warning">Simpan nomor transaksi ini sebagai bukti pembayaran.</p>
+                <p class="success-copy" style="margin-top:10px">Jika ada kendala, hubungi CS +62 823-4718-9584.</p>
+                <a class="whatsapp-button" href="https://wa.me/6282347189584?text={{ rawurlencode($whatsappMessage) }}" target="_blank" rel="noopener">
+                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 11.5a8 8 0 0 1-11.9 7L4 20l1.5-4.1A8 8 0 1 1 20 11.5Z"/><path d="M9.5 8.5c.2-.4.4-.5.7-.5h.5c.2 0 .4.1.5.4l.7 1.6c.1.3 0 .5-.2.7l-.4.4c.6 1.1 1.5 2 2.6 2.6l.4-.4c.2-.2.4-.3.7-.2l1.6.7c.3.1.4.3.4.5v.5c0 .3-.1.5-.5.7-.5.3-1.2.4-2 .2-2.9-.7-5.2-3-5.9-5.9-.2-.8-.1-1.5.2-2Z"/></svg>
+                    Hubungi CS via WhatsApp
+                </a>
             </div>
         @else
             @php
