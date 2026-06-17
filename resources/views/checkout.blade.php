@@ -184,6 +184,21 @@
             font-size: 14px;
             font-weight: 600;
         }
+        .support-link {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 12px;
+            color: #0967f6;
+            font-size: 14px;
+            font-weight: 800;
+            text-decoration: none;
+        }
+        .support-link:hover {
+            color: #0756cf;
+            text-decoration: underline;
+        }
         @media (max-width: 520px) {
             .modal { padding: 24px 18px; }
             .brand-logo { margin-top: 12px; }
@@ -212,7 +227,7 @@
                 <label for="email">Email MyAds <span class="required-mark">(*)</span></label>
                 <div class="control">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
-                    <input id="email" name="email" type="email" value="{{ old('email') }}" placeholder="Contoh: budi@myads.id" autocomplete="email" required>
+                    <input id="email" name="email" type="email" value="{{ old('email') }}" placeholder="Contoh: budi@myads.id" autocomplete="email" maxlength="150" required>
                 </div>
                 @error('email') <div class="error">{{ $message }}</div> @enderror
             </div>
@@ -221,7 +236,7 @@
                 <label for="phone">Nomor Telepon <span class="required-mark">(*)</span></label>
                 <div class="control">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.12.9.32 1.77.59 2.61a2 2 0 0 1-.45 2.11L8 9.69a16 16 0 0 0 6.31 6.31l1.25-1.25a2 2 0 0 1 2.11-.45c.84.27 1.71.47 2.61.59A2 2 0 0 1 22 16.92z"/></svg>
-                    <input id="phone" name="phone" value="{{ old('phone') }}" placeholder="Contoh: 0812-3456-7890" autocomplete="tel" required>
+                    <input id="phone" name="phone" value="{{ old('phone') }}" placeholder="Contoh: 08123456789" autocomplete="tel" inputmode="numeric" minlength="10" maxlength="14" pattern="[0-9]{10,14}" required>
                 </div>
                 @error('phone') <div class="error">{{ $message }}</div> @enderror
             </div>
@@ -295,6 +310,9 @@
             <svg class="icon" style="width:18px;height:18px;color:#4f9ac9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
             Data Anda aman dan terlindungi
         </div>
+        <a class="support-link" href="https://wa.me/6282347189584" target="_blank" rel="noopener">
+            Hubungi CS: +62 823-4718-9584
+        </a>
     </main>
 
     <script>
