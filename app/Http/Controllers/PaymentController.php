@@ -16,6 +16,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -218,6 +219,10 @@ class PaymentController extends Controller
 
     public function callback(Request $request): JsonResponse
     {
+        Log::info('Payment callback request received', [
+            'payload' => $request->all(),
+        ]);
+
         $validated = $request->validate([
             'transaction_id' => ['required', 'string'],
             'transaction_status' => ['required', 'string'],
@@ -233,10 +238,38 @@ class PaymentController extends Controller
         $payment = PaymentTransaction::where('transaction_id', $validated['transaction_id'])->first();
 
         if (! $payment) {
-            return response()->json([
+            $response = [
                 'success' => false,
                 'message' => 'Transaction not found',
-            ], 404);
+            ];
+
+            Log::warning('Payment callback response', [
+                'transaction_id' => $validated['transaction_id'],
+                'response' => $response,
+                'status_code' => 404,
+            ]);
+
+            return response()->json($response, 404);
+        }
+
+        if ($payment->callback_payload !== null) {
+            $response = [
+                'success' => false,
+                'message' => 'Callback already processed for this transaction',
+                'data' => [
+                    'transaction_id' => $payment->transaction_id,
+                    'status' => $payment->status,
+                    'processed_at' => optional($payment->payment_date)->toISOString(),
+                ],
+            ];
+
+            Log::warning('Payment callback response', [
+                'transaction_id' => $payment->transaction_id,
+                'response' => $response,
+                'status_code' => 409,
+            ]);
+
+            return response()->json($response, 409);
         }
 
         $status = $validated['transaction_status'] === '00' ? 'SUCCESS' : 'FAILED';
@@ -264,7 +297,7 @@ class PaymentController extends Controller
             ]),
         ]);
 
-        return response()->json([
+        $response = [
             'success' => true,
             'message' => 'Payment status updated successfully',
             'data' => [
@@ -279,7 +312,15 @@ class PaymentController extends Controller
                 'transaction_expire' => $this->formatWib($validated['transaction_expire'] ?? null),
                 'processed_at' => now()->toISOString(),
             ],
+        ];
+
+        Log::info('Payment callback response', [
+            'transaction_id' => $payment->transaction_id,
+            'response' => $response,
+            'status_code' => 200,
         ]);
+
+        return response()->json($response);
     }
 
     public function transactions(Request $request): JsonResponse
