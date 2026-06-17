@@ -285,7 +285,7 @@
                 <label for="amount">Amount <span class="required-mark">(*)</span></label>
                 <div class="control">
                     <span class="currency-prefix">Rp</span>
-                    <input id="amount" name="amount" type="text" value="{{ old('amount') ? number_format((int) preg_replace('/\D/', '', old('amount')), 0, ',', '.') : '' }}" placeholder="Min. 1.000" inputmode="numeric" autocomplete="off" required>
+                    <input id="amount" name="amount" type="text" value="{{ old('amount') ? number_format((int) preg_replace('/\D/', '', old('amount')), 0, ',', '.') : '' }}" placeholder="Min. 500.000" inputmode="numeric" autocomplete="off" required>
                 </div>
                 @error('amount') <div class="error">{{ $message }}</div> @enderror
             </div>
@@ -354,7 +354,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        const minimumAmount = 1000;
+        const minimumAmount = 500000;
         const checkoutForm = document.querySelector('form[action="{{ route('checkout.store') }}"]');
         const amountInput = document.getElementById('amount');
         const grandTotalInput = document.getElementById('grandTotal');
@@ -391,7 +391,7 @@
                 Swal.fire({
                     icon: 'warning',
                     title: 'Amount belum memenuhi minimum',
-                    text: 'Minimal amount adalah Rp 1.000',
+                    text: 'Minimal amount adalah Rp 500.000',
                     confirmButtonText: 'OK',
                     confirmButtonColor: '#0967f6',
                 });

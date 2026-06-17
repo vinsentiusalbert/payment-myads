@@ -59,7 +59,7 @@
         </table>
 
         <p style="margin:24px 0 0;font-size:14px;line-height:1.6;">
-            Mohon menunggu saldo akan masuk kurang dari 24 jam.
+            Mohon masukan invoice transfer saldo ke dalam tracers.
         </p>
     </div>
 </body>
