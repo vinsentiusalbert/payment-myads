@@ -254,7 +254,7 @@
                 <label for="amount">Amount <span class="required-mark">(*)</span></label>
                 <div class="control">
                     <span class="currency-prefix">Rp</span>
-                    <input id="amount" name="amount" type="text" value="{{ old('amount') ? number_format((int) preg_replace('/\D/', '', old('amount')), 0, ',', '.') : '' }}" placeholder="Contoh: 100.000" inputmode="numeric" autocomplete="off" required>
+                    <input id="amount" name="amount" type="text" value="{{ old('amount') ? number_format((int) preg_replace('/\D/', '', old('amount')), 0, ',', '.') : '' }}" placeholder="Contoh: 500.000" inputmode="numeric" autocomplete="off" required>
                 </div>
                 @error('amount') <div class="error">{{ $message }}</div> @enderror
             </div>
@@ -315,7 +315,10 @@
         </a>
     </main>
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        const minimumAmount = 500000;
+        const checkoutForm = document.querySelector('form[action="{{ route('checkout.store') }}"]');
         const amountInput = document.getElementById('amount');
         const grandTotalInput = document.getElementById('grandTotal');
         const paymentMethodInput = document.getElementById('paymentMethod');
@@ -333,6 +336,22 @@
 
         amountInput.addEventListener('input', updateAmounts);
         updateAmounts();
+
+        checkoutForm?.addEventListener('submit', (event) => {
+            const amount = Number(amountInput.value.replace(/\D/g, '') || 0);
+
+            if (amount < minimumAmount) {
+                event.preventDefault();
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Amount belum memenuhi minimum',
+                    text: 'Minimal amount adalah Rp 500.000',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#0967f6',
+                });
+                amountInput.focus();
+            }
+        });
 
         function syncPaymentMethod() {
             const paymentType = document.querySelector('input[name="payment_type"]:checked')?.value;

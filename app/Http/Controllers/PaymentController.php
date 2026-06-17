@@ -43,7 +43,7 @@ class PaymentController extends Controller
             'email' => ['required', 'string', 'email:rfc', 'max:150'],
             'phone' => ['required', 'regex:/^\d{10,14}$/'],
             'referral_code' => ['nullable', 'string', 'max:80'],
-            'amount' => ['required', 'integer', 'min:1000'],
+            'amount' => ['required', 'integer', 'min:500000'],
             'payment_method' => ['required', 'string', Rule::in(array_keys($this->paymentChannels()))],
             'product_category' => ['nullable', 'string', 'max:80'],
             'product_type' => ['nullable', 'string', 'max:80'],
