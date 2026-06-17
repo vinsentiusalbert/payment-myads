@@ -9,6 +9,7 @@ Route::post('/checkout', [PaymentController::class, 'initiate'])->name('checkout
 Route::get('/payment', [PaymentController::class, 'show'])->name('payment.show');
 Route::get('/payment/{transactionId}/continue', [PaymentController::class, 'continueAfterPayment'])->name('payment.continue');
 Route::get('/payment/{transactionId}/qris.jpg', [PaymentController::class, 'qris'])->name('payment.qris');
+Route::get('/test-email/success', [PaymentController::class, 'testSuccessEmail'])->name('payment.test-email.success');
 
 Route::prefix('api/payment')->name('payment.api.')->group(function () {
     Route::post('/initiate', [PaymentController::class, 'initiate'])->name('initiate');

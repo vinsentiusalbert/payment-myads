@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\PaymentSuccessMail;
 use App\Models\PaymentTransaction;
 use Endroid\QrCode\Builder\Builder;
 use Endroid\QrCode\Encoding\Encoding;
@@ -17,6 +18,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -43,7 +45,7 @@ class PaymentController extends Controller
             'email' => ['required', 'string', 'email:rfc', 'max:150'],
             'phone' => ['required', 'regex:/^\d{10,14}$/'],
             'referral_code' => ['nullable', 'string', 'max:80'],
-            'amount' => ['required', 'integer', 'min:500000'],
+            'amount' => ['required', 'integer', 'min:1000'],
             'payment_method' => ['required', 'string', Rule::in(array_keys($this->paymentChannels()))],
             'product_category' => ['nullable', 'string', 'max:80'],
             'product_type' => ['nullable', 'string', 'max:80'],
@@ -297,6 +299,31 @@ class PaymentController extends Controller
             ]),
         ]);
 
+        $emailSent = false;
+        $emailRecipient = config('services.payment_gateway.success_email');
+
+        if (
+            $status === 'SUCCESS'
+            && blank($payment->success_email_sent_at)
+            && filled($emailRecipient)
+        ) {
+            try {
+                Mail::to($emailRecipient)->send(new PaymentSuccessMail($payment->fresh()));
+
+                $payment->forceFill([
+                    'success_email_sent_at' => now(),
+                ])->save();
+
+                $emailSent = true;
+            } catch (\Throwable $exception) {
+                Log::error('Payment success email failed', [
+                    'transaction_id' => $payment->transaction_id,
+                    'recipient' => $emailRecipient,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+        }
+
         $response = [
             'success' => true,
             'message' => 'Payment status updated successfully',
@@ -310,6 +337,8 @@ class PaymentController extends Controller
                 'insert_id' => $validated['insert_id'] ?? null,
                 'transaction_date' => $this->formatWib($transactionDate),
                 'transaction_expire' => $this->formatWib($validated['transaction_expire'] ?? null),
+                'success_email_recipient' => $emailRecipient,
+                'success_email_sent' => $emailSent,
                 'processed_at' => now()->toISOString(),
             ],
         ];
@@ -321,6 +350,48 @@ class PaymentController extends Controller
         ]);
 
         return response()->json($response);
+    }
+
+    public function testSuccessEmail(Request $request): JsonResponse
+    {
+        $transactionId = $request->query('transaction_id');
+
+        $payment = $transactionId
+            ? PaymentTransaction::where('transaction_id', $transactionId)->first()
+            : PaymentTransaction::latest('payment_date')->latest()->first();
+
+        if (! $payment) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No transaction available for email test',
+            ], 404);
+        }
+
+        $recipient = config('services.payment_gateway.success_email');
+
+        if (blank($recipient)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'PAYMENT_SUCCESS_EMAIL is not configured',
+            ], 500);
+        }
+
+        Mail::to($recipient)->send(new PaymentSuccessMail($payment));
+
+        Log::info('Payment success test email sent', [
+            'transaction_id' => $payment->transaction_id,
+            'recipient' => $recipient,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Test email sent successfully',
+            'data' => [
+                'transaction_id' => $payment->transaction_id,
+                'recipient' => $recipient,
+                'status' => $payment->status,
+            ],
+        ]);
     }
 
     public function transactions(Request $request): JsonResponse
