@@ -347,8 +347,8 @@
             <svg class="icon" style="width:18px;height:18px;color:#4f9ac9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
             Data Anda aman dan terlindungi
         </div>
-        <a class="support-link" href="https://wa.me/6282347189584" target="_blank" rel="noopener">
-            Hubungi CS: +62 823-4718-9584
+        <a class="support-link" href="https://wa.me/6285255150075" target="_blank" rel="noopener">
+            Hubungi CS: +62 852-5515-0075
         </a>
     </main>
 

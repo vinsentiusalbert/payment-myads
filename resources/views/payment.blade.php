@@ -349,8 +349,8 @@
                     Nomor Transaksi: {{ $payment->transaction_id }}
                 </div>
                 <p class="success-warning">Simpan nomor transaksi ini sebagai bukti pembayaran.</p>
-                <p class="success-copy" style="margin-top:10px">Jika ada kendala, hubungi CS +62 823-4718-9584.</p>
-                <a class="whatsapp-button" href="https://wa.me/6282347189584?text={{ rawurlencode($whatsappMessage) }}" target="_blank" rel="noopener">
+                <p class="success-copy" style="margin-top:10px">Jika ada kendala, hubungi CS +62 852-5515-0075.</p>
+                <a class="whatsapp-button" href="https://wa.me/6285255150075?text={{ rawurlencode($whatsappMessage) }}" target="_blank" rel="noopener">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 11.5a8 8 0 0 1-11.9 7L4 20l1.5-4.1A8 8 0 1 1 20 11.5Z"/><path d="M9.5 8.5c.2-.4.4-.5.7-.5h.5c.2 0 .4.1.5.4l.7 1.6c.1.3 0 .5-.2.7l-.4.4c.6 1.1 1.5 2 2.6 2.6l.4-.4c.2-.2.4-.3.7-.2l1.6.7c.3.1.4.3.4.5v.5c0 .3-.1.5-.5.7-.5.3-1.2.4-2 .2-2.9-.7-5.2-3-5.9-5.9-.2-.8-.1-1.5.2-2Z"/></svg>
                     Hubungi CS via WhatsApp
                 </a>
