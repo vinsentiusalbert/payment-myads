@@ -174,6 +174,37 @@
             cursor: pointer;
             box-shadow: 0 10px 20px rgba(9, 103, 246, .26);
         }
+        button:disabled {
+            cursor: not-allowed;
+            opacity: .78;
+            box-shadow: none;
+        }
+        .button-label,
+        .button-loading {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .button-loading {
+            display: none;
+        }
+        button.is-loading .button-label {
+            display: none;
+        }
+        button.is-loading .button-loading {
+            display: inline-flex;
+        }
+        .button-spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255, 255, 255, .35);
+            border-top-color: #ffffff;
+            border-radius: 50%;
+            animation: button-spin .8s linear infinite;
+        }
+        @keyframes button-spin {
+            to { transform: rotate(360deg); }
+        }
         .secure {
             display: flex;
             align-items: center;
@@ -254,7 +285,7 @@
                 <label for="amount">Amount <span class="required-mark">(*)</span></label>
                 <div class="control">
                     <span class="currency-prefix">Rp</span>
-                    <input id="amount" name="amount" type="text" value="{{ old('amount') ? number_format((int) preg_replace('/\D/', '', old('amount')), 0, ',', '.') : '' }}" placeholder="Contoh: 500.000" inputmode="numeric" autocomplete="off" required>
+                    <input id="amount" name="amount" type="text" value="{{ old('amount') ? number_format((int) preg_replace('/\D/', '', old('amount')), 0, ',', '.') : '' }}" placeholder="Min. 500.000" inputmode="numeric" autocomplete="off" required>
                 </div>
                 @error('amount') <div class="error">{{ $message }}</div> @enderror
             </div>
@@ -300,9 +331,15 @@
                 @error('payment_method') <div class="error">{{ $message }}</div> @enderror
             </div>
 
-            <button type="submit">
-                <svg class="icon" style="color:#fff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-                Bayar
+            <button type="submit" id="submitButton">
+                <span class="button-label">
+                    <svg class="icon" style="color:#fff" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                    Bayar
+                </span>
+                <span class="button-loading" aria-hidden="true">
+                    <span class="button-spinner"></span>
+                    Memproses...
+                </span>
             </button>
         </form>
 
@@ -321,10 +358,18 @@
         const checkoutForm = document.querySelector('form[action="{{ route('checkout.store') }}"]');
         const amountInput = document.getElementById('amount');
         const grandTotalInput = document.getElementById('grandTotal');
+        const submitButton = document.getElementById('submitButton');
         const paymentMethodInput = document.getElementById('paymentMethod');
         const bankOptions = document.getElementById('bankOptions');
         const paymentTypeInputs = document.querySelectorAll('input[name="payment_type"]');
         const bankInputs = document.querySelectorAll('input[name="va_bank"]');
+
+        function setSubmittingState(isSubmitting) {
+            submitButton?.classList.toggle('is-loading', isSubmitting);
+            if (submitButton) {
+                submitButton.disabled = isSubmitting;
+            }
+        }
 
         function updateAmounts() {
             const digits = amountInput.value.replace(/\D/g, '');
@@ -342,6 +387,7 @@
 
             if (amount < minimumAmount) {
                 event.preventDefault();
+                setSubmittingState(false);
                 Swal.fire({
                     icon: 'warning',
                     title: 'Amount belum memenuhi minimum',
@@ -350,7 +396,10 @@
                     confirmButtonColor: '#0967f6',
                 });
                 amountInput.focus();
+                return;
             }
+
+            setSubmittingState(true);
         });
 
         function syncPaymentMethod() {
