@@ -252,10 +252,10 @@ class PaymentController extends Controller
             return response()->json($response, 404);
         }
 
-        if ($payment->callback_payload !== null) {
+        if ($payment->callback_payload !== null && $payment->status === 'SUCCESS') {
             $response = [
                 'success' => false,
-                'message' => 'Callback already processed for this transaction',
+                'message' => 'Callback already processed for this successful transaction',
                 'data' => [
                     'transaction_id' => $payment->transaction_id,
                     'status' => $payment->status,
