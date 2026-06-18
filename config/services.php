@@ -54,7 +54,7 @@ return [
             'mandiri' => env('PAYMENT_CHANNEL_MANDIRI', 'MANDIRI'),
         ],
         'callback_url' => env('PAYMENT_GATEWAY_CALLBACK_URL'),
-        'success_email' => env('PAYMENT_SUCCESS_EMAIL', 'vinsentiusalbert@gmail.com'),
+        'success_email' => env('PAYMENT_SUCCESS_EMAIL', 'kselarassolusi@gmail.com'),
     ],
 
 ];

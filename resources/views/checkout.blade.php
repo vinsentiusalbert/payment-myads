@@ -354,7 +354,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        const minimumAmount = 1000;
+        const minimumAmount = 500000;
         const checkoutForm = document.querySelector('form[action="{{ route('checkout.store') }}"]');
         const amountInput = document.getElementById('amount');
         const grandTotalInput = document.getElementById('grandTotal');
